@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useServerFn } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { ArrowRight, MapPin, MessageCircle } from "lucide-react";
 import {
@@ -195,6 +195,3 @@ function Home() {
     </div>
   );
 }
-
-// suppress unused import warning
-void useServerFn;
