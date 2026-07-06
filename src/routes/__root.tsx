@@ -80,14 +80,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Paulo Bicicletas — Loja de bicicletas em Cabo de Santo Agostinho" },
+      { title: "Paulo Bicicletas — Bicicletas, peças e serviços em Cabo de Santo Agostinho" },
       {
         name: "description",
         content:
           "Bicicletas, peças, acessórios e serviços em Cabo de Santo Agostinho, PE. Loja de bairro que virou referência regional desde 1997.",
       },
       { name: "theme-color", content: "#ee7828" },
-      { property: "og:title", content: "Paulo Bicicletas" },
+      { property: "og:title", content: "Paulo Bicicletas — Bicicletas, peças e serviços em Cabo de Santo Agostinho" },
       {
         property: "og:description",
         content: "Bicicletas, peças e serviços em Cabo de Santo Agostinho — PE. Desde 1997.",
@@ -95,6 +95,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "pt_BR" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Paulo Bicicletas — Bicicletas, peças e serviços em Cabo de Santo Agostinho" },
+      { name: "description", content: "Loja de bicicletas em Cabo de Santo Agostinho, PE, desde 1997. Bicicletas urbanas, MTB, speed, elétricas, peças, acessórios e revisão." },
+      { property: "og:description", content: "Loja de bicicletas em Cabo de Santo Agostinho, PE, desde 1997. Bicicletas urbanas, MTB, speed, elétricas, peças, acessórios e revisão." },
+      { name: "twitter:description", content: "Loja de bicicletas em Cabo de Santo Agostinho, PE, desde 1997. Bicicletas urbanas, MTB, speed, elétricas, peças, acessórios e revisão." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8686b50f-203c-4e59-ba3f-a6ad5e57d943/id-preview-d8805cda--47c371a9-c07c-46b8-8a20-4d31a78c8d31.lovable.app-1783376700794.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8686b50f-203c-4e59-ba3f-a6ad5e57d943/id-preview-d8805cda--47c371a9-c07c-46b8-8a20-4d31a78c8d31.lovable.app-1783376700794.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
