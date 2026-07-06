@@ -54,7 +54,7 @@ function ProductsIndex() {
           value={search.sort}
           onValueChange={(v) =>
             navigate({
-              search: (prev) => ({ ...prev, sort: v as typeof search.sort }),
+              search: (prev: typeof search) => ({ ...prev, sort: v as typeof search.sort }),
             })
           }
         >
