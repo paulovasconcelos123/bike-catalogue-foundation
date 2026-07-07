@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 import {
   INSTAGRAM_URL,
   MAPS_EMBED_URL,
@@ -100,14 +101,24 @@ function ContatoPage() {
         {/* Right: Form */}
         <form
           className="space-y-4 rounded-xl border border-border bg-card p-6"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const data = new FormData(form);
+            const nome = String(data.get("nome") ?? "").trim();
+            const email = String(data.get("email") ?? "").trim();
+            const mensagem = String(data.get("mensagem") ?? "").trim();
             setSending(true);
-            setTimeout(() => {
-              setSending(false);
-              (e.target as HTMLFormElement).reset();
-              toast.success("Mensagem enviada! Vamos responder em breve.");
-            }, 700);
+            const { error } = await supabase
+              .from("contact_messages")
+              .insert({ nome, email, mensagem });
+            setSending(false);
+            if (error) {
+              toast.error("Não foi possível enviar. Tente novamente ou chame no WhatsApp.");
+              return;
+            }
+            form.reset();
+            toast.success("Mensagem enviada! Vamos responder em breve.");
           }}
         >
           <h2 className="font-display text-xl uppercase">Mande uma mensagem</h2>
