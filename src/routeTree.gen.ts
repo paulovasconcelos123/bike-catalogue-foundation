@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as ProdutosRouteImport } from './routes/produtos'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as CriarContaRouteImport } from './routes/criar-conta'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
@@ -30,6 +32,16 @@ const SobreRoute = SobreRouteImport.update({
 const ProdutosRoute = ProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarContaRoute = CriarContaRouteImport.update({
+  id: '/criar-conta',
+  path: '/criar-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContatoRoute = ContatoRouteImport.update({
@@ -90,6 +102,8 @@ export interface FileRoutesByFullPath {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/contato': typeof ContatoRoute
+  '/criar-conta': typeof CriarContaRoute
+  '/login': typeof LoginRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/sobre': typeof SobreRoute
   '/pedido/erro': typeof PedidoErroRoute
@@ -104,6 +118,8 @@ export interface FileRoutesByTo {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/contato': typeof ContatoRoute
+  '/criar-conta': typeof CriarContaRoute
+  '/login': typeof LoginRoute
   '/sobre': typeof SobreRoute
   '/pedido/erro': typeof PedidoErroRoute
   '/pedido/sucesso': typeof PedidoSucessoRoute
@@ -118,6 +134,8 @@ export interface FileRoutesById {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/contato': typeof ContatoRoute
+  '/criar-conta': typeof CriarContaRoute
+  '/login': typeof LoginRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/sobre': typeof SobreRoute
   '/pedido/erro': typeof PedidoErroRoute
@@ -134,6 +152,8 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/contato'
+    | '/criar-conta'
+    | '/login'
     | '/produtos'
     | '/sobre'
     | '/pedido/erro'
@@ -148,6 +168,8 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/contato'
+    | '/criar-conta'
+    | '/login'
     | '/sobre'
     | '/pedido/erro'
     | '/pedido/sucesso'
@@ -161,6 +183,8 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/contato'
+    | '/criar-conta'
+    | '/login'
     | '/produtos'
     | '/sobre'
     | '/pedido/erro'
@@ -176,6 +200,8 @@ export interface RootRouteChildren {
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
   ContatoRoute: typeof ContatoRoute
+  CriarContaRoute: typeof CriarContaRoute
+  LoginRoute: typeof LoginRoute
   ProdutosRoute: typeof ProdutosRouteWithChildren
   SobreRoute: typeof SobreRoute
   PedidoErroRoute: typeof PedidoErroRoute
@@ -197,6 +223,20 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/produtos'
       preLoaderRoute: typeof ProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-conta': {
+      id: '/criar-conta'
+      path: '/criar-conta'
+      fullPath: '/criar-conta'
+      preLoaderRoute: typeof CriarContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contato': {
@@ -292,6 +332,8 @@ const rootRouteChildren: RootRouteChildren = {
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
   ContatoRoute: ContatoRoute,
+  CriarContaRoute: CriarContaRoute,
+  LoginRoute: LoginRoute,
   ProdutosRoute: ProdutosRouteWithChildren,
   SobreRoute: SobreRoute,
   PedidoErroRoute: PedidoErroRoute,
