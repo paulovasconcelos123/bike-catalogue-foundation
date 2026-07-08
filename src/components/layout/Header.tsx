@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { LogOut, Menu, Search, ShoppingBag, User } from "lucide-react";
+import { LogOut, Menu, Package, Search, ShoppingBag, User } from "lucide-react";
 import logoHorizontal from "@/assets/logo-horizontal.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -96,6 +96,11 @@ export function Header() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/minha-conta">
+                    <Package className="mr-2 h-4 w-4" /> Meus pedidos
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" /> Sair
                 </DropdownMenuItem>
