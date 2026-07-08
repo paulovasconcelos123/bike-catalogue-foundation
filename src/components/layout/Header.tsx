@@ -16,6 +16,7 @@ const NAV = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const { totalItems } = useCart();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
@@ -52,8 +53,15 @@ export function Header() {
               />
             </div>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Carrinho (em breve)" disabled>
-            <ShoppingBag className="h-5 w-5" />
+          <Button asChild variant="ghost" size="icon" aria-label={`Carrinho (${totalItems} itens)`} className="relative">
+            <Link to="/carrinho">
+              <ShoppingBag className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {totalItems > 99 ? "99+" : totalItems}
+                </span>
+              )}
+            </Link>
           </Button>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
