@@ -139,6 +139,16 @@ export function Header() {
                     <>
                       <p className="mb-2 truncate text-sm text-muted-foreground">{displayName}</p>
                       <Button
+                        asChild
+                        variant="outline"
+                        className="mb-2 w-full"
+                        onClick={() => setOpen(false)}
+                      >
+                        <Link to="/minha-conta">
+                          <Package className="mr-2 h-4 w-4" /> Meus pedidos
+                        </Link>
+                      </Button>
+                      <Button
                         variant="outline"
                         className="w-full"
                         onClick={() => {
