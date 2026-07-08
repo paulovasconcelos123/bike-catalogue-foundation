@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const itemSchema = z.object({
   product_id: z.string().uuid(),
@@ -27,8 +28,9 @@ const checkoutSchema = z.object({
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
 export const createPaymentPreference = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => checkoutSchema.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) {
       throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado");
@@ -58,6 +60,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
         address_zip: data.address.zip.replace(/\D/g, ""),
         total_cents: totalCents,
         status: "pending",
+        user_id: context.userId,
       })
       .select("id")
       .single();
