@@ -133,8 +133,8 @@ function CartPage() {
             <span className="font-display text-lg uppercase text-foreground">Total</span>
             <span className="text-2xl font-bold text-foreground">{formatBRL(totalCents)}</span>
           </div>
-          <Button size="lg" className="mt-6 w-full" disabled>
-            Finalizar compra (em breve)
+          <Button asChild size="lg" className="mt-6 w-full">
+            <Link to="/checkout">Finalizar compra</Link>
           </Button>
           <Button
             variant="ghost"
