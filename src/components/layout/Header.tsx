@@ -129,6 +129,27 @@ export function Header() {
                     {item.label}
                   </Link>
                 ))}
+                <div className="mt-4 border-t border-border pt-4">
+                  {user ? (
+                    <>
+                      <p className="mb-2 truncate text-sm text-muted-foreground">{displayName}</p>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setOpen(false);
+                          handleSignOut();
+                        }}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" /> Sair
+                      </Button>
+                    </>
+                  ) : (
+                    <Button asChild className="w-full" onClick={() => setOpen(false)}>
+                      <Link to="/login">Entrar</Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             </SheetContent>
           </Sheet>
