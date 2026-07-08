@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -48,6 +48,8 @@ function ProductDetail() {
   const { slug } = Route.useParams();
   const product = useSuspenseQuery(productKey(slug)).data;
   const [active, setActive] = useState(0);
+  const { addItem } = useCart();
+  const navigate = useNavigate();
   const outOfStock = product.stock <= 0;
 
   return (

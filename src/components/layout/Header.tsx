@@ -5,6 +5,7 @@ import logoHorizontal from "@/assets/logo-horizontal.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/lib/cart-context";
 
 const NAV = [
   { to: "/produtos", label: "Produtos" },
