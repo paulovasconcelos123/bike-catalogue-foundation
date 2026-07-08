@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth-context";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -49,10 +50,29 @@ const initialState: FormState = {
 function CheckoutPage() {
   const { items, totalCents, totalItems } = useCart();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const createPref = useServerFn(createPaymentPreference);
   const [form, setForm] = useState<FormState>(initialState);
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate({ to: "/login", search: { redirect: "/checkout" }, replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    setForm((prev) => ({
+      ...prev,
+      customer_name:
+        prev.customer_name ||
+        (user.user_metadata?.full_name as string | undefined) ||
+        "",
+      customer_email: prev.customer_email || user.email || "",
+    }));
+  }, [user]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
