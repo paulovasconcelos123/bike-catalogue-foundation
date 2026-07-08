@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as ProdutosRouteImport } from './routes/produtos'
+import { Route as MinhaContaRouteImport } from './routes/minha-conta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CriarContaRouteImport } from './routes/criar-conta'
 import { Route as ContatoRouteImport } from './routes/contato'
@@ -32,6 +33,11 @@ const SobreRoute = SobreRouteImport.update({
 const ProdutosRoute = ProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaContaRoute = MinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/contato': typeof ContatoRoute
   '/criar-conta': typeof CriarContaRoute
   '/login': typeof LoginRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/sobre': typeof SobreRoute
   '/pedido/erro': typeof PedidoErroRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/contato': typeof ContatoRoute
   '/criar-conta': typeof CriarContaRoute
   '/login': typeof LoginRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/sobre': typeof SobreRoute
   '/pedido/erro': typeof PedidoErroRoute
   '/pedido/sucesso': typeof PedidoSucessoRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/contato': typeof ContatoRoute
   '/criar-conta': typeof CriarContaRoute
   '/login': typeof LoginRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/sobre': typeof SobreRoute
   '/pedido/erro': typeof PedidoErroRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/criar-conta'
     | '/login'
+    | '/minha-conta'
     | '/produtos'
     | '/sobre'
     | '/pedido/erro'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/criar-conta'
     | '/login'
+    | '/minha-conta'
     | '/sobre'
     | '/pedido/erro'
     | '/pedido/sucesso'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/criar-conta'
     | '/login'
+    | '/minha-conta'
     | '/produtos'
     | '/sobre'
     | '/pedido/erro'
@@ -202,6 +214,7 @@ export interface RootRouteChildren {
   ContatoRoute: typeof ContatoRoute
   CriarContaRoute: typeof CriarContaRoute
   LoginRoute: typeof LoginRoute
+  MinhaContaRoute: typeof MinhaContaRoute
   ProdutosRoute: typeof ProdutosRouteWithChildren
   SobreRoute: typeof SobreRoute
   PedidoErroRoute: typeof PedidoErroRoute
@@ -223,6 +236,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/produtos'
       preLoaderRoute: typeof ProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-conta': {
+      id: '/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof MinhaContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -334,6 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContatoRoute: ContatoRoute,
   CriarContaRoute: CriarContaRoute,
   LoginRoute: LoginRoute,
+  MinhaContaRoute: MinhaContaRoute,
   ProdutosRoute: ProdutosRouteWithChildren,
   SobreRoute: SobreRoute,
   PedidoErroRoute: PedidoErroRoute,

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const itemSchema = z.object({
   product_id: z.string().uuid(),
@@ -27,8 +28,9 @@ const checkoutSchema = z.object({
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
 export const createPaymentPreference = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => checkoutSchema.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) {
       throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado");
@@ -58,6 +60,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
         address_zip: data.address.zip.replace(/\D/g, ""),
         total_cents: totalCents,
         status: "pending",
+        user_id: context.userId,
       })
       .select("id")
       .single();
@@ -172,4 +175,31 @@ export const getOrderSummary = createServerFn({ method: "GET" })
       .select("product_name, unit_price_cents, quantity")
       .eq("order_id", data.order_id);
     return { ...order, items: items ?? [] };
+  });
+
+export const getMyOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+    const { data: orders, error } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, total_cents, created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[getMyOrders] erro", error);
+      return [];
+    }
+    if (!orders || orders.length === 0) return [];
+    const ids = orders.map((o) => o.id);
+    const { data: items } = await supabaseAdmin
+      .from("order_items")
+      .select("order_id, product_name, unit_price_cents, quantity")
+      .in("order_id", ids);
+    return orders.map((o) => ({
+      ...o,
+      items: (items ?? []).filter((i) => i.order_id === o.id),
+    }));
   });
