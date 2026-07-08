@@ -176,3 +176,30 @@ export const getOrderSummary = createServerFn({ method: "GET" })
       .eq("order_id", data.order_id);
     return { ...order, items: items ?? [] };
   });
+
+export const getMyOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+    const { data: orders, error } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, total_cents, created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[getMyOrders] erro", error);
+      return [];
+    }
+    if (!orders || orders.length === 0) return [];
+    const ids = orders.map((o) => o.id);
+    const { data: items } = await supabaseAdmin
+      .from("order_items")
+      .select("order_id, product_name, unit_price_cents, quantity")
+      .in("order_id", ids);
+    return orders.map((o) => ({
+      ...o,
+      items: (items ?? []).filter((i) => i.order_id === o.id),
+    }));
+  });
