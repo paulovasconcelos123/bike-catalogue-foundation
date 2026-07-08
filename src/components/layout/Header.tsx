@@ -1,11 +1,20 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Menu, Search, ShoppingBag } from "lucide-react";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { LogOut, Menu, Search, ShoppingBag, User } from "lucide-react";
 import logoHorizontal from "@/assets/logo-horizontal.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-context";
 
 const NAV = [
   { to: "/produtos", label: "Produtos" },
