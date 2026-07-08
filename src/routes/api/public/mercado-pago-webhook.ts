@@ -52,59 +52,58 @@ export const Route = createFileRoute("/api/public/mercado-pago-webhook")({
           return new Response("ok");
         }
 
-        // Process in background so we can 200 quickly.
-        (async () => {
-          try {
-            const res = await fetch(
-              `https://api.mercadopago.com/v1/payments/${paymentId}`,
-              { headers: { Authorization: `Bearer ${accessToken}` } },
-            );
-            if (!res.ok) {
-              console.error("[mp-webhook] fetch payment", res.status);
-              return;
-            }
-            const payment = (await res.json()) as {
-              id: number | string;
-              status: string;
-              external_reference?: string;
-              metadata?: { order_id?: string };
-            };
-            const orderId =
-              payment.external_reference || payment.metadata?.order_id;
-            if (!orderId) {
-              console.warn("[mp-webhook] payment sem external_reference", payment.id);
-              return;
-            }
-            const mapping: Record<string, "paid" | "cancelled" | "failed" | "pending"> =
-              {
-                approved: "paid",
-                authorized: "paid",
-                in_process: "pending",
-                pending: "pending",
-                rejected: "failed",
-                cancelled: "cancelled",
-                refunded: "cancelled",
-                charged_back: "cancelled",
-              };
-            const nextStatus = mapping[payment.status] ?? "pending";
-
-            const { supabaseAdmin } = await import(
-              "@/integrations/supabase/client.server"
-            );
-            const { error } = await supabaseAdmin
-              .from("orders")
-              .update({
-                status: nextStatus,
-                mp_payment_id: String(payment.id),
-              })
-              .eq("id", orderId);
-            if (error) console.error("[mp-webhook] update order", error);
-          } catch (err) {
-            console.error("[mp-webhook] background", err);
+        // Process synchronously so the order is updated before we ack.
+        try {
+          const res = await fetch(
+            `https://api.mercadopago.com/v1/payments/${paymentId}`,
+            { headers: { Authorization: `Bearer ${accessToken}` } },
+          );
+          if (!res.ok) {
+            console.error("[mp-webhook] fetch payment", res.status);
+            return new Response("ok");
           }
-        })();
+          const payment = (await res.json()) as {
+            id: number | string;
+            status: string;
+            external_reference?: string;
+            metadata?: { order_id?: string };
+          };
+          const orderId =
+            payment.external_reference || payment.metadata?.order_id;
+          if (!orderId) {
+            console.warn("[mp-webhook] payment sem external_reference", payment.id);
+            return new Response("ok");
+          }
+          const mapping: Record<string, "paid" | "cancelled" | "failed" | "pending"> =
+            {
+              approved: "paid",
+              authorized: "paid",
+              in_process: "pending",
+              pending: "pending",
+              rejected: "failed",
+              cancelled: "cancelled",
+              refunded: "cancelled",
+              charged_back: "cancelled",
+            };
+          const nextStatus = mapping[payment.status] ?? "pending";
+
+          const { supabaseAdmin } = await import(
+            "@/integrations/supabase/client.server"
+          );
+          const { error } = await supabaseAdmin
+            .from("orders")
+            .update({
+              status: nextStatus,
+              mp_payment_id: String(payment.id),
+            })
+            .eq("id", orderId);
+          if (error) console.error("[mp-webhook] update order", error);
+        } catch (err) {
+          console.error("[mp-webhook] processing", err);
+        }
 
         return new Response("ok");
+
       },
       GET: async () => new Response("ok"),
     },
