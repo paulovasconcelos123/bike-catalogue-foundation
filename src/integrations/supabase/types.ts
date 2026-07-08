@@ -92,6 +92,104 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          unit_price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          unit_price_cents: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          address_city: string
+          address_complement: string | null
+          address_neighborhood: string
+          address_number: string
+          address_state: string
+          address_street: string
+          address_zip: string
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          id: string
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          address_city: string
+          address_complement?: string | null
+          address_neighborhood: string
+          address_number: string
+          address_state: string
+          address_street: string
+          address_zip: string
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          address_city?: string
+          address_complement?: string | null
+          address_neighborhood?: string
+          address_number?: string
+          address_state?: string
+          address_street?: string
+          address_zip?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category_id: string
@@ -192,7 +290,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      order_status: "pending" | "paid" | "cancelled" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -319,6 +417,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      order_status: ["pending", "paid", "cancelled", "failed"],
+    },
   },
 } as const
