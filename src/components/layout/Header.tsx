@@ -1,11 +1,20 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Menu, Search, ShoppingBag } from "lucide-react";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { LogOut, Menu, Search, ShoppingBag, User } from "lucide-react";
 import logoHorizontal from "@/assets/logo-horizontal.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-context";
 
 const NAV = [
   { to: "/produtos", label: "Produtos" },
@@ -17,6 +26,19 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { totalItems } = useCart();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const router = useRouter();
+
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined)?.trim() || user?.email || "";
+
+  async function handleSignOut() {
+    await signOut();
+    await router.invalidate();
+    navigate({ to: "/", replace: true });
+  }
+
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
@@ -63,6 +85,27 @@ export function Header() {
               )}
             </Link>
           </Button>
+
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Minha conta">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" /> Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild variant="ghost" size="sm" className="hidden font-display uppercase tracking-wide md:inline-flex">
+              <Link to="/login">Entrar</Link>
+            </Button>
+          )}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menu">
@@ -86,6 +129,27 @@ export function Header() {
                     {item.label}
                   </Link>
                 ))}
+                <div className="mt-4 border-t border-border pt-4">
+                  {user ? (
+                    <>
+                      <p className="mb-2 truncate text-sm text-muted-foreground">{displayName}</p>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setOpen(false);
+                          handleSignOut();
+                        }}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" /> Sair
+                      </Button>
+                    </>
+                  ) : (
+                    <Button asChild className="w-full" onClick={() => setOpen(false)}>
+                      <Link to="/login">Entrar</Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             </SheetContent>
           </Sheet>
