@@ -1,16 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { getProductBySlug } from "@/lib/catalog.functions";
 import { formatBRL, whatsappLinkWithText } from "@/lib/format";
+import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { MessageCircle, ShoppingBag } from "lucide-react";
 
 function productKey(slug: string) {
@@ -119,20 +115,30 @@ function ProductDetail() {
           <p className="mt-6 whitespace-pre-line text-foreground/85">{product.description}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button size="lg" disabled className="cursor-not-allowed opacity-70">
-                      <ShoppingBag className="mr-2 h-5 w-5" /> Comprar
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Compra online em breve — fale com a gente no WhatsApp por enquanto.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button
+              size="lg"
+              disabled={outOfStock}
+              onClick={() => {
+                addItem({
+                  id: product.id,
+                  slug: product.slug,
+                  name: product.name,
+                  price_cents: product.price_cents,
+                  image: product.images[0] ?? null,
+                  stock: product.stock,
+                });
+                toast.success("Adicionado ao carrinho", {
+                  description: product.name,
+                  action: {
+                    label: "Ver carrinho",
+                    onClick: () => navigate({ to: "/carrinho" }),
+                  },
+                });
+              }}
+            >
+              <ShoppingBag className="mr-2 h-5 w-5" />
+              {outOfStock ? "Esgotado" : "Adicionar ao carrinho"}
+            </Button>
             <a
               href={whatsappLinkWithText(`Olá! Tenho interesse na ${product.name}.`)}
               target="_blank"

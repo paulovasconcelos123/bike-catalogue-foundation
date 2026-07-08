@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos.index'
@@ -30,6 +31,11 @@ const ProdutosRoute = ProdutosRouteImport.update({
 const ContatoRoute = ContatoRouteImport.update({
   id: '/contato',
   path: '/contato',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarrinhoRoute = CarrinhoRouteImport.update({
+  id: '/carrinho',
+  path: '/carrinho',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogRoute = BlogRouteImport.update({
@@ -56,6 +62,7 @@ const ProdutosSlugRoute = ProdutosSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
+  '/carrinho': typeof CarrinhoRoute
   '/contato': typeof ContatoRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/sobre': typeof SobreRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
+  '/carrinho': typeof CarrinhoRoute
   '/contato': typeof ContatoRoute
   '/sobre': typeof SobreRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
+  '/carrinho': typeof CarrinhoRoute
   '/contato': typeof ContatoRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/sobre': typeof SobreRoute
@@ -85,17 +94,26 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/blog'
+    | '/carrinho'
     | '/contato'
     | '/produtos'
     | '/sobre'
     | '/produtos/$slug'
     | '/produtos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/blog' | '/contato' | '/sobre' | '/produtos/$slug' | '/produtos'
+  to:
+    | '/'
+    | '/blog'
+    | '/carrinho'
+    | '/contato'
+    | '/sobre'
+    | '/produtos/$slug'
+    | '/produtos'
   id:
     | '__root__'
     | '/'
     | '/blog'
+    | '/carrinho'
     | '/contato'
     | '/produtos'
     | '/sobre'
@@ -106,6 +124,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlogRoute: typeof BlogRoute
+  CarrinhoRoute: typeof CarrinhoRoute
   ContatoRoute: typeof ContatoRoute
   ProdutosRoute: typeof ProdutosRouteWithChildren
   SobreRoute: typeof SobreRoute
@@ -132,6 +151,13 @@ declare module '@tanstack/react-router' {
       path: '/contato'
       fullPath: '/contato'
       preLoaderRoute: typeof ContatoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carrinho': {
+      id: '/carrinho'
+      path: '/carrinho'
+      fullPath: '/carrinho'
+      preLoaderRoute: typeof CarrinhoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog': {
@@ -182,6 +208,7 @@ const ProdutosRouteWithChildren = ProdutosRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogRoute: BlogRoute,
+  CarrinhoRoute: CarrinhoRoute,
   ContatoRoute: ContatoRoute,
   ProdutosRoute: ProdutosRouteWithChildren,
   SobreRoute: SobreRoute,
