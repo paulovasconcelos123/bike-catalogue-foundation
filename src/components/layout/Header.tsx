@@ -26,7 +26,7 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { totalItems } = useCart();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
 
