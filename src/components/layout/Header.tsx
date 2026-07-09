@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { LogOut, Menu, Package, Search, ShoppingBag, User } from "lucide-react";
+import { LogOut, Menu, Package, Search, Settings, ShoppingBag, User } from "lucide-react";
 import logoHorizontal from "@/assets/logo-horizontal.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -26,7 +26,7 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const { totalItems } = useCart();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
 
@@ -101,6 +101,13 @@ export function Header() {
                     <Package className="mr-2 h-4 w-4" /> Meus pedidos
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link to="/admin">
+                      <Settings className="mr-2 h-4 w-4" /> Painel admin
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" /> Sair
                 </DropdownMenuItem>
@@ -148,6 +155,18 @@ export function Header() {
                           <Package className="mr-2 h-4 w-4" /> Meus pedidos
                         </Link>
                       </Button>
+                      {isAdmin && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="mb-2 w-full"
+                          onClick={() => setOpen(false)}
+                        >
+                          <Link to="/admin">
+                            <Settings className="mr-2 h-4 w-4" /> Painel admin
+                          </Link>
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         className="w-full"
