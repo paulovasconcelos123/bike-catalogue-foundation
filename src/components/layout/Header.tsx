@@ -155,6 +155,18 @@ export function Header() {
                           <Package className="mr-2 h-4 w-4" /> Meus pedidos
                         </Link>
                       </Button>
+                      {isAdmin && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="mb-2 w-full"
+                          onClick={() => setOpen(false)}
+                        >
+                          <Link to="/admin">
+                            <Settings className="mr-2 h-4 w-4" /> Painel admin
+                          </Link>
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         className="w-full"
