@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { LogOut, Menu, Package, Search, ShoppingBag, User } from "lucide-react";
+import { LogOut, Menu, Package, Search, Settings, ShoppingBag, User } from "lucide-react";
 import logoHorizontal from "@/assets/logo-horizontal.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
