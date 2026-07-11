@@ -33,6 +33,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { formatBRL } from "@/lib/format";
+import { ImagesUpload, VideoUpload } from "@/components/admin/ProductMediaUpload";
+
 import {
   adminDeleteCategory,
   adminDeleteProduct,
@@ -255,7 +257,8 @@ function ProductDialog({
     stock: "",
     category_id: "",
     subcategory_id: "",
-    image_url: "",
+    images: [] as string[],
+    video_url: null as string | null,
     featured: false,
   });
   const [saving, setSaving] = useState(false);
@@ -271,7 +274,8 @@ function ProductDialog({
         stock: String(editing.stock),
         category_id: editing.category_id,
         subcategory_id: editing.subcategory_id ?? "",
-        image_url: editing.images?.[0] ?? "",
+        images: (editing.images as string[]) ?? [],
+        video_url: (editing as any).video_url ?? null,
         featured: editing.featured,
       });
     } else {
@@ -283,7 +287,8 @@ function ProductDialog({
         stock: "0",
         category_id: cats.categories[0]?.id ?? "",
         subcategory_id: "",
-        image_url: "",
+        images: [],
+        video_url: null,
         featured: false,
       });
     }
@@ -307,7 +312,8 @@ function ProductDialog({
           stock: parseInt(form.stock || "0", 10),
           category_id: form.category_id,
           subcategory_id: form.subcategory_id || null,
-          image_url: form.image_url,
+          images: form.images,
+          video_url: form.video_url,
           featured: form.featured,
         },
       });
@@ -320,9 +326,11 @@ function ProductDialog({
     }
   }
 
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+
         <DialogHeader>
           <DialogTitle>{editing ? "Editar produto" : "Novo produto"}</DialogTitle>
         </DialogHeader>
@@ -413,13 +421,25 @@ function ProductDialog({
             </div>
           </div>
           <div>
-            <Label>Imagem (URL)</Label>
-            <Input
-              value={form.image_url}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              placeholder="https://…"
+            <Label>Fotos do produto</Label>
+            <p className="mb-2 text-xs text-muted-foreground">
+              A primeira imagem será a capa. Arraste para reordenar via setas.
+            </p>
+            <ImagesUpload
+              value={form.images}
+              onChange={(v) => setForm({ ...form, images: v })}
             />
           </div>
+          <div>
+            <Label>Vídeo do produto (opcional)</Label>
+            <div className="mt-2">
+              <VideoUpload
+                value={form.video_url}
+                onChange={(v) => setForm({ ...form, video_url: v })}
+              />
+            </div>
+          </div>
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

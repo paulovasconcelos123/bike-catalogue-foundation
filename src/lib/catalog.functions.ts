@@ -29,10 +29,12 @@ export type ProductRow = {
   stock: number;
   description: string;
   images: string[];
+  video_url: string | null;
   featured: boolean;
   category: { id: string; slug: string; name: string };
   subcategory: { id: string; slug: string; name: string } | null;
 };
+
 
 export type BlogPost = {
   id: string;
@@ -75,7 +77,7 @@ export const getFeaturedProducts = createServerFn({ method: "GET" }).handler(
     const { data, error } = await supabase
       .from("products")
       .select(
-        "id, slug, name, price_cents, stock, description, images, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
+        "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
       )
       .eq("featured", true)
       .order("created_at", { ascending: false })
@@ -98,7 +100,7 @@ export const listProducts = createServerFn({ method: "GET" })
     let query = supabase
       .from("products")
       .select(
-        "id, slug, name, price_cents, stock, description, images, featured, category:categories!inner(id, slug, name), subcategory:subcategories(id, slug, name)",
+        "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories!inner(id, slug, name), subcategory:subcategories(id, slug, name)",
       );
 
     if (data.categoria) {
@@ -109,7 +111,7 @@ export const listProducts = createServerFn({ method: "GET" })
       const { data: rows, error } = await supabase
         .from("products")
         .select(
-          "id, slug, name, price_cents, stock, description, images, featured, category:categories!inner(id, slug, name), subcategory:subcategories!inner(id, slug, name)",
+          "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories!inner(id, slug, name), subcategory:subcategories!inner(id, slug, name)",
         )
         .eq("subcategory.slug", data.subcategoria)
         .order(
@@ -140,8 +142,9 @@ export const getProductBySlug = createServerFn({ method: "GET" })
     const { data: row, error } = await supabase
       .from("products")
       .select(
-        "id, slug, name, price_cents, stock, description, images, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
+        "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
       )
+
       .eq("slug", data.slug)
       .maybeSingle();
     if (error) throw new Error(error.message);

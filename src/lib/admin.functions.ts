@@ -38,12 +38,13 @@ export const adminListProducts = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, slug, name, description, price_cents, stock, images, featured, category_id, subcategory_id, category:categories(id, name, slug), subcategory:subcategories(id, name, slug)",
+        "id, slug, name, description, price_cents, stock, images, video_url, featured, category_id, subcategory_id, category:categories(id, name, slug), subcategory:subcategories(id, name, slug)",
       )
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
 
 const productInput = z.object({
   id: z.string().uuid().optional(),
@@ -59,7 +60,8 @@ const productInput = z.object({
   stock: z.number().int().nonnegative(),
   category_id: z.string().uuid(),
   subcategory_id: z.string().uuid().nullable().optional(),
-  image_url: z.string().trim().max(1000).optional().or(z.literal("")),
+  images: z.array(z.string().trim().max(1000)).default([]),
+  video_url: z.string().trim().max(1000).nullable().optional(),
   featured: z.boolean().default(false),
 });
 
@@ -71,7 +73,6 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"
     );
-    const images = data.image_url ? [data.image_url] : [];
     const row = {
       slug: data.slug,
       name: data.name,
@@ -80,9 +81,11 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
       stock: data.stock,
       category_id: data.category_id,
       subcategory_id: data.subcategory_id ?? null,
-      images,
+      images: data.images,
+      video_url: data.video_url ?? null,
       featured: data.featured,
     };
+
     if (data.id) {
       const { error } = await supabaseAdmin
         .from("products")

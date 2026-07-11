@@ -206,6 +206,7 @@ export type Database = {
           slug: string
           stock: number
           subcategory_id: string | null
+          video_url: string | null
         }
         Insert: {
           category_id: string
@@ -219,6 +220,7 @@ export type Database = {
           slug: string
           stock?: number
           subcategory_id?: string | null
+          video_url?: string | null
         }
         Update: {
           category_id?: string
@@ -232,6 +234,7 @@ export type Database = {
           slug?: string
           stock?: number
           subcategory_id?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
