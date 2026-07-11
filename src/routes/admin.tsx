@@ -420,13 +420,25 @@ function ProductDialog({
             </div>
           </div>
           <div>
-            <Label>Imagem (URL)</Label>
-            <Input
-              value={form.image_url}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              placeholder="https://…"
+            <Label>Fotos do produto</Label>
+            <p className="mb-2 text-xs text-muted-foreground">
+              A primeira imagem será a capa. Arraste para reordenar via setas.
+            </p>
+            <ImagesUpload
+              value={form.images}
+              onChange={(v) => setForm({ ...form, images: v })}
             />
           </div>
+          <div>
+            <Label>Vídeo do produto (opcional)</Label>
+            <div className="mt-2">
+              <VideoUpload
+                value={form.video_url}
+                onChange={(v) => setForm({ ...form, video_url: v })}
+              />
+            </div>
+          </div>
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
