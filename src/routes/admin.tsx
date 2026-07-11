@@ -257,7 +257,8 @@ function ProductDialog({
     stock: "",
     category_id: "",
     subcategory_id: "",
-    image_url: "",
+    images: [] as string[],
+    video_url: null as string | null,
     featured: false,
   });
   const [saving, setSaving] = useState(false);
@@ -273,7 +274,8 @@ function ProductDialog({
         stock: String(editing.stock),
         category_id: editing.category_id,
         subcategory_id: editing.subcategory_id ?? "",
-        image_url: editing.images?.[0] ?? "",
+        images: (editing.images as string[]) ?? [],
+        video_url: (editing as any).video_url ?? null,
         featured: editing.featured,
       });
     } else {
@@ -285,7 +287,8 @@ function ProductDialog({
         stock: "0",
         category_id: cats.categories[0]?.id ?? "",
         subcategory_id: "",
-        image_url: "",
+        images: [],
+        video_url: null,
         featured: false,
       });
     }
@@ -309,7 +312,8 @@ function ProductDialog({
           stock: parseInt(form.stock || "0", 10),
           category_id: form.category_id,
           subcategory_id: form.subcategory_id || null,
-          image_url: form.image_url,
+          images: form.images,
+          video_url: form.video_url,
           featured: form.featured,
         },
       });
@@ -321,6 +325,7 @@ function ProductDialog({
       setSaving(false);
     }
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
