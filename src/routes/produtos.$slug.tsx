@@ -51,6 +51,11 @@ function ProductDetail() {
   const { addItem } = useCart();
   const navigate = useNavigate();
   const outOfStock = product.stock <= 0;
+  const mediaItems: Array<{ type: "image" | "video"; url: string }> = [
+    ...product.images.map((url) => ({ type: "image" as const, url })),
+    ...(product.video_url ? [{ type: "video" as const, url: product.video_url }] : []),
+  ];
+  const activeItem = mediaItems[active] ?? mediaItems[0];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -69,29 +74,55 @@ function ProductDetail() {
       <div className="grid gap-10 lg:grid-cols-2">
         <div>
           <div className="overflow-hidden rounded-xl border border-border bg-muted">
-            <img
-              src={product.images[active] ?? product.images[0]}
-              alt={product.name}
-              className="aspect-square w-full object-cover"
-            />
+            {activeItem?.type === "video" ? (
+              <video
+                key={activeItem.url}
+                src={activeItem.url}
+                controls
+                playsInline
+                className="aspect-square w-full bg-black object-contain"
+              />
+            ) : (
+              <img
+                src={activeItem?.url}
+                alt={product.name}
+                className="aspect-square w-full object-cover"
+              />
+            )}
           </div>
-          {product.images.length > 1 && (
-            <div className="mt-3 flex gap-2">
-              {product.images.map((img, i) => (
+          {mediaItems.length > 1 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {mediaItems.map((item, i) => (
                 <button
-                  key={img}
+                  key={item.url}
                   type="button"
                   onClick={() => setActive(i)}
-                  className={`h-16 w-16 overflow-hidden rounded-md border-2 ${
+                  className={`relative h-16 w-16 overflow-hidden rounded-md border-2 ${
                     i === active ? "border-primary" : "border-transparent"
                   }`}
                 >
-                  <img src={img} alt="" className="h-full w-full object-cover" />
+                  {item.type === "video" ? (
+                    <>
+                      <video
+                        src={item.url}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-full w-full object-cover"
+                      />
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-bold text-white">
+                        ▶
+                      </span>
+                    </>
+                  ) : (
+                    <img src={item.url} alt="" className="h-full w-full object-cover" />
+                  )}
                 </button>
               ))}
             </div>
           )}
         </div>
+
 
         <div>
           <p className="text-xs uppercase tracking-wide text-secondary">
