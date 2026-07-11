@@ -38,12 +38,13 @@ export const adminListProducts = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, slug, name, description, price_cents, stock, images, featured, category_id, subcategory_id, category:categories(id, name, slug), subcategory:subcategories(id, name, slug)",
+        "id, slug, name, description, price_cents, stock, images, video_url, featured, category_id, subcategory_id, category:categories(id, name, slug), subcategory:subcategories(id, name, slug)",
       )
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
 
 const productInput = z.object({
   id: z.string().uuid().optional(),
