@@ -142,8 +142,9 @@ export const getProductBySlug = createServerFn({ method: "GET" })
     const { data: row, error } = await supabase
       .from("products")
       .select(
-        "id, slug, name, price_cents, stock, description, images, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
+        "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
       )
+
       .eq("slug", data.slug)
       .maybeSingle();
     if (error) throw new Error(error.message);
