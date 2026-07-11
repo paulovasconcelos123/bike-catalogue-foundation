@@ -29,10 +29,12 @@ export type ProductRow = {
   stock: number;
   description: string;
   images: string[];
+  video_url: string | null;
   featured: boolean;
   category: { id: string; slug: string; name: string };
   subcategory: { id: string; slug: string; name: string } | null;
 };
+
 
 export type BlogPost = {
   id: string;
