@@ -33,6 +33,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { formatBRL } from "@/lib/format";
+import { ImagesUpload, VideoUpload } from "@/components/admin/ProductMediaUpload";
+
 import {
   adminDeleteCategory,
   adminDeleteProduct,
