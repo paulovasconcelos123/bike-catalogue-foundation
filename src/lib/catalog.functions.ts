@@ -77,7 +77,7 @@ export const getFeaturedProducts = createServerFn({ method: "GET" }).handler(
     const { data, error } = await supabase
       .from("products")
       .select(
-        "id, slug, name, price_cents, stock, description, images, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
+        "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories(id, slug, name), subcategory:subcategories(id, slug, name)",
       )
       .eq("featured", true)
       .order("created_at", { ascending: false })
@@ -100,7 +100,7 @@ export const listProducts = createServerFn({ method: "GET" })
     let query = supabase
       .from("products")
       .select(
-        "id, slug, name, price_cents, stock, description, images, featured, category:categories!inner(id, slug, name), subcategory:subcategories(id, slug, name)",
+        "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories!inner(id, slug, name), subcategory:subcategories(id, slug, name)",
       );
 
     if (data.categoria) {
@@ -111,7 +111,7 @@ export const listProducts = createServerFn({ method: "GET" })
       const { data: rows, error } = await supabase
         .from("products")
         .select(
-          "id, slug, name, price_cents, stock, description, images, featured, category:categories!inner(id, slug, name), subcategory:subcategories!inner(id, slug, name)",
+          "id, slug, name, price_cents, stock, description, images, video_url, featured, category:categories!inner(id, slug, name), subcategory:subcategories!inner(id, slug, name)",
         )
         .eq("subcategory.slug", data.subcategoria)
         .order(
