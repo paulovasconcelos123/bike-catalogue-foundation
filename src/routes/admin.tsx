@@ -49,6 +49,12 @@ import {
   adminUpsertProduct,
   adminUpsertSubcategory,
 } from "@/lib/admin.functions";
+import {
+  adminDeleteCoupon,
+  adminListCoupons,
+  adminToggleCoupon,
+  adminUpsertCoupon,
+} from "@/lib/coupons.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
