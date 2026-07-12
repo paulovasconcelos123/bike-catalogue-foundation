@@ -198,6 +198,7 @@ function CheckoutPage() {
             unit_price_cents: i.price_cents,
             quantity: i.quantity,
           })),
+          coupon_code: couponApplied?.code ?? "",
         },
       });
       window.location.href = result.checkout_url;
