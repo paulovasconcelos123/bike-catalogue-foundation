@@ -90,6 +90,13 @@ export const Route = createFileRoute("/api/public/mercado-pago-webhook")({
           const { supabaseAdmin } = await import(
             "@/integrations/supabase/client.server"
           );
+          const { data: orderRow, error: fetchErr } = await supabaseAdmin
+            .from("orders")
+            .select("id, status, coupon_code, discount_cents, user_id")
+            .eq("id", orderId)
+            .maybeSingle();
+          if (fetchErr) console.error("[mp-webhook] fetch order", fetchErr);
+
           const { error } = await supabaseAdmin
             .from("orders")
             .update({
@@ -98,6 +105,32 @@ export const Route = createFileRoute("/api/public/mercado-pago-webhook")({
             })
             .eq("id", orderId);
           if (error) console.error("[mp-webhook] update order", error);
+
+          // Redeem coupon atomically only when transitioning to paid the first time
+          if (
+            nextStatus === "paid" &&
+            orderRow &&
+            orderRow.status !== "paid" &&
+            orderRow.coupon_code &&
+            (orderRow.discount_cents ?? 0) > 0
+          ) {
+            const { data: redeemed, error: rpcErr } = await supabaseAdmin.rpc(
+              "redeem_coupon",
+              {
+                _code: orderRow.coupon_code,
+                _order_id: orderRow.id,
+                _user_id: orderRow.user_id,
+                _discount_applied_cents: orderRow.discount_cents ?? 0,
+              },
+            );
+            if (rpcErr) console.error("[mp-webhook] redeem_coupon", rpcErr);
+            else if (!redeemed) {
+              console.warn(
+                "[mp-webhook] coupon já esgotado/inativo no momento da confirmação",
+                orderRow.coupon_code,
+              );
+            }
+          }
         } catch (err) {
           console.error("[mp-webhook] processing", err);
         }
