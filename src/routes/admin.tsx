@@ -95,6 +95,7 @@ function AdminPage() {
           <TabsTrigger value="produtos">Produtos</TabsTrigger>
           <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
+          <TabsTrigger value="cupons">Cupons</TabsTrigger>
           <TabsTrigger value="mensagens">Mensagens</TabsTrigger>
         </TabsList>
         <TabsContent value="produtos">
@@ -105,6 +106,9 @@ function AdminPage() {
         </TabsContent>
         <TabsContent value="categorias">
           <CategoriesPanel />
+        </TabsContent>
+        <TabsContent value="cupons">
+          <CouponsPanel />
         </TabsContent>
         <TabsContent value="mensagens">
           <MessagesPanel />
