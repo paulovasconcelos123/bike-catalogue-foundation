@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart-context";
 import { formatBRL } from "@/lib/format";
 import { createPaymentPreference } from "@/lib/checkout.functions";
+import { validateCoupon, type CouponValidation } from "@/lib/coupons.functions";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
