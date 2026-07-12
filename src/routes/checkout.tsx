@@ -404,13 +404,81 @@ function CheckoutPage() {
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
-            <span className="font-display text-lg uppercase text-foreground">
-              Total
-            </span>
-            <span className="text-2xl font-bold text-foreground">
-              {formatBRL(totalCents)}
-            </span>
+
+          <div className="mt-4 border-t border-border pt-4">
+            <Label htmlFor="coupon" className="font-display text-sm uppercase">
+              Cupom de desconto
+            </Label>
+            {couponApplied ? (
+              <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-brand-brick/40 bg-brand-brick/10 px-3 py-2 text-sm">
+                <div>
+                  <div className="font-semibold text-foreground">
+                    {couponApplied.code}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {couponApplied.discount_type === "percentage"
+                      ? `${couponApplied.discount_value}% de desconto`
+                      : `${formatBRL(Math.floor(couponApplied.discount_value))} de desconto`}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeCoupon}
+                >
+                  Remover
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-2 flex gap-2">
+                <Input
+                  id="coupon"
+                  placeholder="EX: PROMO10"
+                  maxLength={60}
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyCoupon();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={applyCoupon}
+                  disabled={couponLoading || !couponInput.trim()}
+                >
+                  {couponLoading ? "..." : "Aplicar"}
+                </Button>
+              </div>
+            )}
+            {couponError && (
+              <p className="mt-2 text-xs text-destructive">{couponError}</p>
+            )}
+          </div>
+
+          <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Subtotal</span>
+              <span>{formatBRL(totalCents)}</span>
+            </div>
+            {discountCents > 0 && (
+              <div className="flex justify-between text-brand-brick">
+                <span>Desconto</span>
+                <span>−{formatBRL(discountCents)}</span>
+              </div>
+            )}
+            <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2">
+              <span className="font-display text-lg uppercase text-foreground">
+                Total
+              </span>
+              <span className="text-2xl font-bold text-foreground">
+                {formatBRL(finalTotalCents)}
+              </span>
+            </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Pagamento processado com segurança pelo Mercado Pago. Frete
