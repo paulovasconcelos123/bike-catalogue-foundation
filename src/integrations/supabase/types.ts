@@ -92,6 +92,90 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          discount_applied_cents: number
+          id: string
+          order_id: string
+          redeemed_at: string
+          user_id: string | null
+        }
+        Insert: {
+          coupon_id: string
+          discount_applied_cents: number
+          id?: string
+          order_id: string
+          redeemed_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          coupon_id?: string
+          discount_applied_cents?: number
+          id?: string
+          order_id?: string
+          redeemed_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_uses: number
+          min_order_cents: number | null
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          max_uses: number
+          min_order_cents?: number | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          min_order_cents?: number | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -139,10 +223,12 @@ export type Database = {
           address_state: string
           address_street: string
           address_zip: string
+          coupon_code: string | null
           created_at: string
           customer_email: string
           customer_name: string
           customer_phone: string
+          discount_cents: number
           id: string
           mp_payment_id: string | null
           mp_preference_id: string | null
@@ -159,10 +245,12 @@ export type Database = {
           address_state: string
           address_street: string
           address_zip: string
+          coupon_code?: string | null
           created_at?: string
           customer_email: string
           customer_name: string
           customer_phone: string
+          discount_cents?: number
           id?: string
           mp_payment_id?: string | null
           mp_preference_id?: string | null
@@ -179,10 +267,12 @@ export type Database = {
           address_state?: string
           address_street?: string
           address_zip?: string
+          coupon_code?: string | null
           created_at?: string
           customer_email?: string
           customer_name?: string
           customer_phone?: string
+          discount_cents?: number
           id?: string
           mp_payment_id?: string | null
           mp_preference_id?: string | null
@@ -338,6 +428,15 @@ export type Database = {
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      redeem_coupon: {
+        Args: {
+          _code: string
+          _discount_applied_cents: number
+          _order_id: string
           _user_id: string
         }
         Returns: boolean

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart-context";
 import { formatBRL } from "@/lib/format";
 import { createPaymentPreference } from "@/lib/checkout.functions";
+import { validateCoupon, type CouponValidation } from "@/lib/coupons.functions";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -52,9 +53,69 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const createPref = useServerFn(createPaymentPreference);
+  const validateCouponFn = useServerFn(validateCoupon);
   const [form, setForm] = useState<FormState>(initialState);
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplied, setCouponApplied] = useState<
+    Extract<CouponValidation, { valid: true }> | null
+  >(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const discountCents = couponApplied?.discount_cents ?? 0;
+  const finalTotalCents = Math.max(0, totalCents - discountCents);
+
+  // Re-validate coupon whenever cart total changes to avoid stale discount
+  useEffect(() => {
+    if (!couponApplied) return;
+    if (couponApplied.final_cents === finalTotalCents) return;
+    (async () => {
+      try {
+        const result = await validateCouponFn({
+          data: { code: couponApplied.code, order_total_cents: totalCents },
+        });
+        if (result.valid) setCouponApplied(result);
+        else {
+          setCouponApplied(null);
+          setCouponError(result.error);
+        }
+      } catch {
+        setCouponApplied(null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalCents]);
+
+  async function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const result = await validateCouponFn({
+        data: { code, order_total_cents: totalCents },
+      });
+      if (result.valid) {
+        setCouponApplied(result);
+        toast.success(`Cupom ${result.code} aplicado`);
+      } else {
+        setCouponApplied(null);
+        setCouponError(result.error);
+      }
+    } catch (e: any) {
+      setCouponError(e.message ?? "Erro ao validar cupom");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setCouponApplied(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -137,6 +198,7 @@ function CheckoutPage() {
             unit_price_cents: i.price_cents,
             quantity: i.quantity,
           })),
+          coupon_code: couponApplied?.code ?? "",
         },
       });
       window.location.href = result.checkout_url;
@@ -342,13 +404,81 @@ function CheckoutPage() {
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
-            <span className="font-display text-lg uppercase text-foreground">
-              Total
-            </span>
-            <span className="text-2xl font-bold text-foreground">
-              {formatBRL(totalCents)}
-            </span>
+
+          <div className="mt-4 border-t border-border pt-4">
+            <Label htmlFor="coupon" className="font-display text-sm uppercase">
+              Cupom de desconto
+            </Label>
+            {couponApplied ? (
+              <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-brand-brick/40 bg-brand-brick/10 px-3 py-2 text-sm">
+                <div>
+                  <div className="font-semibold text-foreground">
+                    {couponApplied.code}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {couponApplied.discount_type === "percentage"
+                      ? `${couponApplied.discount_value}% de desconto`
+                      : `${formatBRL(Math.floor(couponApplied.discount_value))} de desconto`}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeCoupon}
+                >
+                  Remover
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-2 flex gap-2">
+                <Input
+                  id="coupon"
+                  placeholder="EX: PROMO10"
+                  maxLength={60}
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyCoupon();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={applyCoupon}
+                  disabled={couponLoading || !couponInput.trim()}
+                >
+                  {couponLoading ? "..." : "Aplicar"}
+                </Button>
+              </div>
+            )}
+            {couponError && (
+              <p className="mt-2 text-xs text-destructive">{couponError}</p>
+            )}
+          </div>
+
+          <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Subtotal</span>
+              <span>{formatBRL(totalCents)}</span>
+            </div>
+            {discountCents > 0 && (
+              <div className="flex justify-between text-brand-brick">
+                <span>Desconto</span>
+                <span>−{formatBRL(discountCents)}</span>
+              </div>
+            )}
+            <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2">
+              <span className="font-display text-lg uppercase text-foreground">
+                Total
+              </span>
+              <span className="text-2xl font-bold text-foreground">
+                {formatBRL(finalTotalCents)}
+              </span>
+            </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Pagamento processado com segurança pelo Mercado Pago. Frete
