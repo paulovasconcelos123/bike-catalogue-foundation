@@ -46,6 +46,20 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
       0,
     );
 
+    // Server-side coupon validation (never trust client discount)
+    let discountCents = 0;
+    let couponCode: string | null = null;
+    if (data.coupon_code && data.coupon_code.trim()) {
+      const { validateCouponInternal } = await import("./coupons.server");
+      const result = await validateCouponInternal(data.coupon_code, totalCents);
+      if (!result.valid) {
+        throw new Error(`Cupom inválido: ${result.error}`);
+      }
+      discountCents = result.discount_cents;
+      couponCode = result.code;
+    }
+    const finalCents = totalCents - discountCents;
+
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
@@ -59,7 +73,9 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
         address_city: data.address.city,
         address_state: data.address.state.toUpperCase(),
         address_zip: data.address.zip.replace(/\D/g, ""),
-        total_cents: totalCents,
+        total_cents: finalCents,
+        discount_cents: discountCents,
+        coupon_code: couponCode,
         status: "pending",
         user_id: context.userId,
       })
