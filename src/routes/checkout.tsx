@@ -53,9 +53,69 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const createPref = useServerFn(createPaymentPreference);
+  const validateCouponFn = useServerFn(validateCoupon);
   const [form, setForm] = useState<FormState>(initialState);
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplied, setCouponApplied] = useState<
+    Extract<CouponValidation, { valid: true }> | null
+  >(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const discountCents = couponApplied?.discount_cents ?? 0;
+  const finalTotalCents = Math.max(0, totalCents - discountCents);
+
+  // Re-validate coupon whenever cart total changes to avoid stale discount
+  useEffect(() => {
+    if (!couponApplied) return;
+    if (couponApplied.final_cents === finalTotalCents) return;
+    (async () => {
+      try {
+        const result = await validateCouponFn({
+          data: { code: couponApplied.code, order_total_cents: totalCents },
+        });
+        if (result.valid) setCouponApplied(result);
+        else {
+          setCouponApplied(null);
+          setCouponError(result.error);
+        }
+      } catch {
+        setCouponApplied(null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalCents]);
+
+  async function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const result = await validateCouponFn({
+        data: { code, order_total_cents: totalCents },
+      });
+      if (result.valid) {
+        setCouponApplied(result);
+        toast.success(`Cupom ${result.code} aplicado`);
+      } else {
+        setCouponApplied(null);
+        setCouponError(result.error);
+      }
+    } catch (e: any) {
+      setCouponError(e.message ?? "Erro ao validar cupom");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setCouponApplied(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
 
   useEffect(() => {
     if (!authLoading && !user) {
