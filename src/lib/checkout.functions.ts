@@ -23,6 +23,7 @@ const checkoutSchema = z.object({
     zip: z.string().trim().min(8).max(9),
   }),
   items: z.array(itemSchema).min(1).max(50),
+  coupon_code: z.string().trim().max(60).optional().or(z.literal("")),
 });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
