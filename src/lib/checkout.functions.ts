@@ -109,10 +109,32 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
     const req = getRequest();
     const origin = new URL(req.url).origin;
 
+    // Apply discount pro-rata across items so MP total equals finalCents
+    const mpItems = data.items.map((i) => ({
+      id: i.product_id,
+      title: i.product_name,
+      quantity: i.quantity,
+      unit_price_cents: i.unit_price_cents,
+    }));
+    if (discountCents > 0 && totalCents > 0) {
+      let remainingDiscount = discountCents;
+      for (let idx = 0; idx < mpItems.length; idx++) {
+        const it = mpItems[idx];
+        const lineTotal = it.unit_price_cents * it.quantity;
+        const isLast = idx === mpItems.length - 1;
+        const lineDiscount = isLast
+          ? remainingDiscount
+          : Math.floor((discountCents * lineTotal) / totalCents);
+        remainingDiscount -= lineDiscount;
+        const newLineTotal = Math.max(0, lineTotal - lineDiscount);
+        it.unit_price_cents = Math.floor(newLineTotal / it.quantity);
+      }
+    }
+
     const preferencePayload = {
-      items: data.items.map((i) => ({
-        id: i.product_id,
-        title: i.product_name,
+      items: mpItems.map((i) => ({
+        id: i.id,
+        title: i.title,
         quantity: i.quantity,
         unit_price: i.unit_price_cents / 100,
         currency_id: "BRL",
