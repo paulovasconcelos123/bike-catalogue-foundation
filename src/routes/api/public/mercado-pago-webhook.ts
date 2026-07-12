@@ -119,7 +119,7 @@ export const Route = createFileRoute("/api/public/mercado-pago-webhook")({
               {
                 _code: orderRow.coupon_code,
                 _order_id: orderRow.id,
-                _user_id: orderRow.user_id ?? "00000000-0000-0000-0000-000000000000",
+                _user_id: (orderRow.user_id ?? null) as string,
                 _discount_applied_cents: orderRow.discount_cents ?? 0,
               },
             );
