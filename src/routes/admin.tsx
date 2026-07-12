@@ -1017,3 +1017,370 @@ function MessagesPanel() {
     </div>
   );
 }
+
+// ========== COUPONS ==========
+type CouponRow = Awaited<ReturnType<typeof adminListCoupons>>[number];
+
+function CouponsPanel() {
+  const list = useServerFn(adminListCoupons);
+  const upsert = useServerFn(adminUpsertCoupon);
+  const remove = useServerFn(adminDeleteCoupon);
+  const toggle = useServerFn(adminToggleCoupon);
+  const [coupons, setCoupons] = useState<CouponRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<CouponRow | null>(null);
+  const [open, setOpen] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      setCoupons(await list());
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao carregar cupons");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remover este cupom?")) return;
+    try {
+      await remove({ data: { id } });
+      toast.success("Cupom removido");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
+  async function handleToggle(c: CouponRow) {
+    try {
+      await toggle({ data: { id: c.id, active: !c.active } });
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex justify-between">
+        <h2 className="font-display text-xl uppercase">
+          Cupons ({coupons.length})
+        </h2>
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setOpen(true);
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" /> Novo cupom
+        </Button>
+      </div>
+      {loading ? (
+        <Loader2 className="h-5 w-5 animate-spin" />
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Código</TableHead>
+                <TableHead>Desconto</TableHead>
+                <TableHead className="text-right">Usos</TableHead>
+                <TableHead>Validade</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-32"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {coupons.map((c) => {
+                const isExpired =
+                  c.expires_at && new Date(c.expires_at).getTime() < Date.now();
+                const isExhausted = c.uses_count >= c.max_uses;
+                const statusLabel = !c.active
+                  ? "Inativo"
+                  : isExpired
+                    ? "Expirado"
+                    : isExhausted
+                      ? "Esgotado"
+                      : "Ativo";
+                const statusVariant: any =
+                  !c.active || isExpired || isExhausted
+                    ? "secondary"
+                    : "default";
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-mono font-semibold">
+                      {c.code}
+                    </TableCell>
+                    <TableCell>
+                      {c.discount_type === "percentage"
+                        ? `${Number(c.discount_value)}%`
+                        : formatBRL(Math.floor(Number(c.discount_value)))}
+                      {c.min_order_cents ? (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          mín. {formatBRL(c.min_order_cents)}
+                        </span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {c.uses_count}/{c.max_uses}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {c.expires_at
+                        ? new Date(c.expires_at).toLocaleDateString("pt-BR")
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant}>{statusLabel}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleToggle(c)}
+                        >
+                          {c.active ? "Desativar" : "Ativar"}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(c);
+                            setOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(c.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {coupons.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-center text-muted-foreground"
+                  >
+                    Nenhum cupom criado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      <CouponDialog
+        open={open}
+        onOpenChange={setOpen}
+        editing={editing}
+        onSaved={async (values) => {
+          try {
+            await upsert({ data: { id: editing?.id, ...values } });
+            toast.success(editing ? "Cupom atualizado" : "Cupom criado");
+            setOpen(false);
+            refresh();
+          } catch (e: any) {
+            toast.error(e.message);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function CouponDialog({
+  open,
+  onOpenChange,
+  editing,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  editing: CouponRow | null;
+  onSaved: (values: {
+    code: string;
+    discount_type: "percentage" | "fixed";
+    discount_value: number;
+    min_order_cents: number | null;
+    max_uses: number;
+    active: boolean;
+    expires_at: string | null;
+  }) => void;
+}) {
+  const [code, setCode] = useState("");
+  const [type, setType] = useState<"percentage" | "fixed">("percentage");
+  // For percentage: raw %. For fixed: value in BRL (converted to cents on save)
+  const [value, setValue] = useState("");
+  const [minOrder, setMinOrder] = useState("");
+  const [maxUses, setMaxUses] = useState("100");
+  const [active, setActive] = useState(true);
+  const [expiresAt, setExpiresAt] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setCode(editing.code);
+      setType(editing.discount_type as "percentage" | "fixed");
+      setValue(
+        editing.discount_type === "percentage"
+          ? String(Number(editing.discount_value))
+          : (Number(editing.discount_value) / 100).toFixed(2),
+      );
+      setMinOrder(
+        editing.min_order_cents
+          ? (editing.min_order_cents / 100).toFixed(2)
+          : "",
+      );
+      setMaxUses(String(editing.max_uses));
+      setActive(editing.active);
+      setExpiresAt(
+        editing.expires_at ? editing.expires_at.slice(0, 10) : "",
+      );
+    } else {
+      setCode("");
+      setType("percentage");
+      setValue("");
+      setMinOrder("");
+      setMaxUses("100");
+      setActive(true);
+      setExpiresAt("");
+    }
+  }, [open, editing]);
+
+  async function handleSave() {
+    const parsedValue = parseFloat(value.replace(",", "."));
+    if (!code.trim() || !parsedValue || parsedValue <= 0) {
+      toast.error("Preencha código e valor válidos");
+      return;
+    }
+    if (type === "percentage" && parsedValue > 100) {
+      toast.error("Percentual máximo é 100");
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSaved({
+        code: code.trim().toUpperCase(),
+        discount_type: type,
+        discount_value:
+          type === "percentage" ? parsedValue : Math.round(parsedValue * 100),
+        min_order_cents: minOrder
+          ? Math.round(parseFloat(minOrder.replace(",", ".")) * 100)
+          : null,
+        max_uses: parseInt(maxUses || "0", 10),
+        active,
+        expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {editing ? "Editar cupom" : "Novo cupom"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div>
+            <Label>Código</Label>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="PROMO10"
+              maxLength={60}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Tipo</Label>
+              <Select
+                value={type}
+                onValueChange={(v) => setType(v as "percentage" | "fixed")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percentage">Percentual (%)</SelectItem>
+                  <SelectItem value="fixed">Valor fixo (R$)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>{type === "percentage" ? "Percentual" : "Valor (R$)"}</Label>
+              <Input
+                type="number"
+                step={type === "percentage" ? "1" : "0.01"}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Valor mínimo do pedido (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={minOrder}
+                placeholder="opcional"
+                onChange={(e) => setMinOrder(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Limite de usos</Label>
+              <Input
+                type="number"
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Validade (opcional)</Label>
+            <Input
+              type="date"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+            />
+            Cupom ativo
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
