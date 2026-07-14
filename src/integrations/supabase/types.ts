@@ -283,6 +283,86 @@ export type Database = {
         }
         Relationships: []
       }
+      product_review_media: {
+        Row: {
+          created_at: string
+          id: string
+          media_type: string
+          media_url: string
+          order_index: number
+          review_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_type: string
+          media_url: string
+          order_index?: number
+          review_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          order_index?: number
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_review_media_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "product_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string
@@ -444,7 +524,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      order_status: "pending" | "paid" | "cancelled" | "failed"
+      order_status: "pending" | "paid" | "cancelled" | "failed" | "delivered"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -573,7 +653,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      order_status: ["pending", "paid", "cancelled", "failed"],
+      order_status: ["pending", "paid", "cancelled", "failed", "delivered"],
     },
   },
 } as const

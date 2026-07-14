@@ -8,6 +8,10 @@ import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ShoppingBag } from "lucide-react";
+import {
+  ProductReviewsSection,
+  ProductReviewsSummary,
+} from "@/components/reviews/ProductReviews";
 
 function productKey(slug: string) {
   return queryOptions({
@@ -48,6 +52,10 @@ function ProductDetail() {
   const { slug } = Route.useParams();
   const product = useSuspenseQuery(productKey(slug)).data;
   const [active, setActive] = useState(0);
+  const [summary, setSummary] = useState<{ average: number; count: number }>({
+    average: 0,
+    count: 0,
+  });
   const { addItem } = useCart();
   const navigate = useNavigate();
   const outOfStock = product.stock <= 0;
@@ -132,6 +140,7 @@ function ProductDetail() {
           <h1 className="mt-1 font-display text-3xl uppercase text-foreground sm:text-4xl">
             {product.name}
           </h1>
+          <ProductReviewsSummary average={summary.average} count={summary.count} />
           <p className="mt-4 text-3xl font-bold text-foreground">
             {formatBRL(product.price_cents)}
           </p>
@@ -183,6 +192,8 @@ function ProductDetail() {
           </div>
         </div>
       </div>
+
+      <ProductReviewsSection productId={product.id} onSummaryLoaded={setSummary} />
     </div>
   );
 }
