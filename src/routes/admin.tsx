@@ -552,6 +552,7 @@ function OrdersPanel() {
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="pending">Aguardando</SelectItem>
             <SelectItem value="paid">Pago</SelectItem>
+            <SelectItem value="delivered">Entregue</SelectItem>
             <SelectItem value="cancelled">Cancelado</SelectItem>
             <SelectItem value="failed">Falhou</SelectItem>
           </SelectContent>
