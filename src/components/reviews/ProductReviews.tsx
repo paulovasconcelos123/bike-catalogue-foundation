@@ -76,8 +76,9 @@ export function ProductReviewsSection({
   async function refresh() {
     setLoading(true);
     try {
-      const { reviews } = await listFn({ data: { productId } });
+      const { reviews, average, count } = await listFn({ data: { productId } });
       setReviews(reviews);
+      onSummaryLoaded?.({ average, count });
     } finally {
       setLoading(false);
     }
