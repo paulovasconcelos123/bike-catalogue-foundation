@@ -52,6 +52,10 @@ function ProductDetail() {
   const { slug } = Route.useParams();
   const product = useSuspenseQuery(productKey(slug)).data;
   const [active, setActive] = useState(0);
+  const [summary, setSummary] = useState<{ average: number; count: number }>({
+    average: 0,
+    count: 0,
+  });
   const { addItem } = useCart();
   const navigate = useNavigate();
   const outOfStock = product.stock <= 0;
