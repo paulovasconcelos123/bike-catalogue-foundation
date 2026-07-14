@@ -17,14 +17,14 @@ import {
   type ReviewMediaItem,
 } from "@/components/reviews/ReviewMediaUpload";
 
-function Stars({ value, size = 4 }: { value: number; size?: number }) {
+function Stars({ value }: { value: number }) {
   const filled = Math.round(value);
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => (
         <Star
           key={n}
-          className={`h-${size} w-${size} ${
+          className={`h-4 w-4 ${
             n <= filled ? "fill-primary text-primary" : "text-muted-foreground/40"
           }`}
         />
