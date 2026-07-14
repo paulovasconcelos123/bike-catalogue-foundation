@@ -55,6 +55,7 @@ import {
   adminToggleCoupon,
   adminUpsertCoupon,
 } from "@/lib/coupons.functions";
+import { adminDeleteReview, adminListReviews } from "@/lib/reviews.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
