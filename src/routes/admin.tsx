@@ -1393,3 +1393,119 @@ function CouponDialog({
     </Dialog>
   );
 }
+
+// ========== REVIEWS ==========
+type AdminReview = Awaited<ReturnType<typeof adminListReviews>>[number];
+
+function ReviewsPanel() {
+  const list = useServerFn(adminListReviews);
+  const remove = useServerFn(adminDeleteReview);
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      setReviews(await list());
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao carregar avaliações");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remover esta avaliação? Esta ação é irreversível.")) return;
+    try {
+      await remove({ data: { id } });
+      toast.success("Avaliação removida");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
+  if (loading) return <Loader2 className="h-5 w-5 animate-spin" />;
+
+  return (
+    <div>
+      <h2 className="mb-4 font-display text-xl uppercase">
+        Avaliações ({reviews.length})
+      </h2>
+      {reviews.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhuma avaliação ainda.</p>
+      ) : (
+        <div className="space-y-3">
+          {reviews.map((r) => (
+            <div key={r.id} className="rounded-md border p-4">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <div>
+                  <div className="font-semibold">
+                    {r.product?.name ?? "Produto removido"}
+                    <span className="ml-2 font-normal text-muted-foreground">
+                      · {r.author_name}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Nota: {r.rating}/5 ·{" "}
+                    {new Date(r.created_at).toLocaleString("pt-BR")}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => handleDelete(r.id)}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" /> Remover
+                </Button>
+              </div>
+              {r.comment && (
+                <p className="whitespace-pre-wrap text-sm text-foreground/85">
+                  {r.comment}
+                </p>
+              )}
+              {r.media && r.media.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {r.media.map((m: any) => (
+                    <a
+                      key={m.id}
+                      href={m.media_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block h-16 w-16 overflow-hidden rounded border border-border bg-muted"
+                    >
+                      {m.media_type === "video" ? (
+                        <div className="relative h-full w-full bg-black">
+                          <video
+                            src={m.media_url}
+                            muted
+                            preload="metadata"
+                            className="h-full w-full object-cover"
+                          />
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 text-xs text-white">
+                            ▶
+                          </span>
+                        </div>
+                      ) : (
+                        <img
+                          src={m.media_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
