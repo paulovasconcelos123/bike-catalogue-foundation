@@ -485,6 +485,7 @@ type OrderDetail = Awaited<ReturnType<typeof adminGetOrder>>;
 const STATUS: Record<string, string> = {
   pending: "Aguardando",
   paid: "Pago",
+  delivered: "Entregue",
   cancelled: "Cancelado",
   failed: "Falhou",
 };
@@ -492,6 +493,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   {
     pending: "outline",
     paid: "default",
+    delivered: "secondary",
     cancelled: "secondary",
     failed: "destructive",
   };
