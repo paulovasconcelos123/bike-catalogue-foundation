@@ -140,6 +140,7 @@ function ProductDetail() {
           <h1 className="mt-1 font-display text-3xl uppercase text-foreground sm:text-4xl">
             {product.name}
           </h1>
+          <ProductReviewsSummary average={summary.average} count={summary.count} />
           <p className="mt-4 text-3xl font-bold text-foreground">
             {formatBRL(product.price_cents)}
           </p>
