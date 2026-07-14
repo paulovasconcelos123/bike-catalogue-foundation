@@ -8,6 +8,10 @@ import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ShoppingBag } from "lucide-react";
+import {
+  ProductReviewsSection,
+  ProductReviewsSummary,
+} from "@/components/reviews/ProductReviews";
 
 function productKey(slug: string) {
   return queryOptions({
