@@ -192,6 +192,8 @@ function ProductDetail() {
           </div>
         </div>
       </div>
+
+      <ProductReviewsSection productId={product.id} onSummaryLoaded={setSummary} />
     </div>
   );
 }
