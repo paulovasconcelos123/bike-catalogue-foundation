@@ -53,7 +53,13 @@ export function ProductReviewsSummary({ average, count }: { average: number; cou
   );
 }
 
-export function ProductReviewsSection({ productId }: { productId: string }) {
+export function ProductReviewsSection({
+  productId,
+  onSummaryLoaded,
+}: {
+  productId: string;
+  onSummaryLoaded?: (s: { average: number; count: number }) => void;
+}) {
   const { user, loading: authLoading } = useAuth();
   const listFn = useServerFn(listProductReviews);
   const eligFn = useServerFn(getReviewEligibility);
