@@ -70,6 +70,16 @@ function PedidoSucesso() {
               </li>
             ))}
           </ul>
+          <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Subtotal</span><span>{formatBRL(summary.subtotal_cents)}</span>
+            </div>
+            {summary.discount_cents > 0 && <div className="flex justify-between text-primary"><span>Desconto</span><span>−{formatBRL(summary.discount_cents)}</span></div>}
+            <div className="flex justify-between text-muted-foreground">
+              <span>{summary.shipping_method === "pickup" ? "Retirada na loja" : summary.shipping_service_name ?? "Frete"}</span>
+              <span>{summary.shipping_cents === 0 ? "Grátis" : formatBRL(summary.shipping_cents)}</span>
+            </div>
+          </div>
           <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
             <span className="font-display uppercase">Total</span>
             <span className="text-xl font-bold">

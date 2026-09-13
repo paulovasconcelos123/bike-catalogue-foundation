@@ -1065,6 +1065,253 @@ function SubcategoryDialog({
   );
 }
 
+// ========== SHIPPING ==========
+type ShippingData = Awaited<ReturnType<typeof adminGetShipping>>;
+type ShippingRate = ShippingData["rates"][number];
+
+function ShippingPanel() {
+  const getShipping = useServerFn(adminGetShipping);
+  const updateConfig = useServerFn(adminUpdateShippingConfig);
+  const upsertRate = useServerFn(adminUpsertShippingRate);
+  const deleteRate = useServerFn(adminDeleteShippingRate);
+  const [data, setData] = useState<ShippingData | null>(null);
+  const [editing, setEditing] = useState<ShippingRate | null>(null);
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [config, setConfig] = useState({
+    superfrete_enabled: true,
+    origin_zip: "54589050",
+    enabled_services: "1,2,17,3,31",
+    default_weight_kg: "0.5",
+    default_height_cm: "10",
+    default_width_cm: "15",
+    default_length_cm: "20",
+  });
+
+  async function refresh() {
+    const result = await getShipping();
+    setData(result);
+    setConfig({
+      superfrete_enabled: result.config.superfrete_enabled,
+      origin_zip: result.config.origin_zip,
+      enabled_services: result.config.enabled_services,
+      default_weight_kg: String(result.config.default_weight_kg),
+      default_height_cm: String(result.config.default_height_cm),
+      default_width_cm: String(result.config.default_width_cm),
+      default_length_cm: String(result.config.default_length_cm),
+    });
+  }
+
+  useEffect(() => {
+    refresh().catch((error) => toast.error(error.message));
+  }, []);
+
+  async function saveConfig() {
+    setSaving(true);
+    try {
+      await updateConfig({
+        data: {
+          superfrete_enabled: config.superfrete_enabled,
+          origin_zip: config.origin_zip.replace(/\D/g, ""),
+          enabled_services: config.enabled_services,
+          default_weight_kg: Number(config.default_weight_kg),
+          default_height_cm: Number(config.default_height_cm),
+          default_width_cm: Number(config.default_width_cm),
+          default_length_cm: Number(config.default_length_cm),
+        },
+      });
+      toast.success("Configuração de frete atualizada");
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!data) return <Loader2 className="h-5 w-5 animate-spin" />;
+  return (
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-xl uppercase">Configuração</h2>
+          <Badge variant={data.tokenConfigured ? "default" : "secondary"}>
+            SuperFrete {data.tokenConfigured ? "configurada" : "não configurada"}
+          </Badge>
+        </div>
+        <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
+            <input
+              type="checkbox"
+              checked={config.superfrete_enabled}
+              onChange={(event) =>
+                setConfig({ ...config, superfrete_enabled: event.target.checked })
+              }
+            />
+            Tentar SuperFrete antes da contingência
+          </label>
+          <div>
+            <Label>CEP de origem</Label>
+            <Input
+              value={config.origin_zip}
+              onChange={(event) => setConfig({ ...config, origin_zip: event.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Serviços</Label>
+            <Input
+              value={config.enabled_services}
+              onChange={(event) =>
+                setConfig({ ...config, enabled_services: event.target.value })
+              }
+            />
+          </div>
+          <div>
+            <Label>Peso padrão (kg)</Label>
+            <Input
+              type="number"
+              step="0.001"
+              value={config.default_weight_kg}
+              onChange={(event) =>
+                setConfig({ ...config, default_weight_kg: event.target.value })
+              }
+            />
+          </div>
+          <div>
+            <Label>Altura padrão (cm)</Label>
+            <Input
+              type="number"
+              value={config.default_height_cm}
+              onChange={(event) =>
+                setConfig({ ...config, default_height_cm: event.target.value })
+              }
+            />
+          </div>
+          <div>
+            <Label>Largura padrão (cm)</Label>
+            <Input
+              type="number"
+              value={config.default_width_cm}
+              onChange={(event) =>
+                setConfig({ ...config, default_width_cm: event.target.value })
+              }
+            />
+          </div>
+          <div>
+            <Label>Comprimento padrão (cm)</Label>
+            <Input
+              type="number"
+              value={config.default_length_cm}
+              onChange={(event) =>
+                setConfig({ ...config, default_length_cm: event.target.value })
+              }
+            />
+          </div>
+          <div className="flex items-end sm:col-span-2">
+            <Button onClick={saveConfig} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar configuração"}
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl uppercase">Tarifas de contingência</h2>
+            <p className="text-sm text-muted-foreground">
+              Valores provisórios: revise antes de usar em produção.
+            </p>
+          </div>
+          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Nova tarifa
+          </Button>
+        </div>
+        <div className="overflow-x-auto rounded-md border">
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>Região</TableHead><TableHead>CEP</TableHead>
+              <TableHead>Peso</TableHead><TableHead>Valor</TableHead>
+              <TableHead>Prazo</TableHead><TableHead>Status</TableHead><TableHead />
+            </TableRow></TableHeader>
+            <TableBody>
+              {data.rates.map((rate) => (
+                <TableRow key={rate.id}>
+                  <TableCell>{rate.name}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs">{rate.zip_start}–{rate.zip_end}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs">{Number(rate.weight_min_kg)}–{Number(rate.weight_max_kg)} kg</TableCell>
+                  <TableCell>{formatBRL(rate.price_cents)}</TableCell>
+                  <TableCell>{rate.deadline_days} dias</TableCell>
+                  <TableCell><Badge variant={rate.active ? "default" : "secondary"}>{rate.active ? "Ativa" : "Inativa"}</Badge></TableCell>
+                  <TableCell><div className="flex justify-end gap-1">
+                    <Button size="icon" variant="ghost" onClick={() => { setEditing(rate); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={async () => {
+                      if (!confirm("Remover esta tarifa?")) return;
+                      await deleteRate({ data: { id: rate.id } });
+                      toast.success("Tarifa removida");
+                      refresh();
+                    }}><Trash2 className="h-4 w-4" /></Button>
+                  </div></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
+      <ShippingRateDialog
+        open={open}
+        editing={editing}
+        onOpenChange={setOpen}
+        onSave={async (values) => {
+          await upsertRate({ data: { id: editing?.id, ...values } });
+          toast.success("Tarifa salva");
+          setOpen(false);
+          await refresh();
+        }}
+      />
+    </div>
+  );
+}
+
+function ShippingRateDialog({ open, editing, onOpenChange, onSave }: {
+  open: boolean;
+  editing: ShippingRate | null;
+  onOpenChange: (open: boolean) => void;
+  onSave: (values: Omit<ShippingRate, "id" | "created_at" | "updated_at">) => Promise<void>;
+}) {
+  const [form, setForm] = useState({ name: "", zip_start: "", zip_end: "", weight_min_kg: "0", weight_max_kg: "1", price: "", deadline_days: "", active: true, provisional: true });
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setForm(editing ? {
+      name: editing.name, zip_start: editing.zip_start, zip_end: editing.zip_end,
+      weight_min_kg: String(editing.weight_min_kg), weight_max_kg: String(editing.weight_max_kg),
+      price: (editing.price_cents / 100).toFixed(2), deadline_days: String(editing.deadline_days),
+      active: editing.active, provisional: editing.provisional,
+    } : { name: "", zip_start: "", zip_end: "", weight_min_kg: "0", weight_max_kg: "1", price: "", deadline_days: "", active: true, provisional: true });
+  }, [open, editing]);
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent>
+    <DialogHeader><DialogTitle>{editing ? "Editar tarifa" : "Nova tarifa"}</DialogTitle></DialogHeader>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="sm:col-span-2"><Label>Nome / região</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+      <div><Label>CEP inicial</Label><Input value={form.zip_start} onChange={(e) => setForm({ ...form, zip_start: e.target.value.replace(/\D/g, "") })} /></div>
+      <div><Label>CEP final</Label><Input value={form.zip_end} onChange={(e) => setForm({ ...form, zip_end: e.target.value.replace(/\D/g, "") })} /></div>
+      <div><Label>Peso mínimo (kg)</Label><Input type="number" step="0.001" value={form.weight_min_kg} onChange={(e) => setForm({ ...form, weight_min_kg: e.target.value })} /></div>
+      <div><Label>Peso máximo (kg)</Label><Input type="number" step="0.001" value={form.weight_max_kg} onChange={(e) => setForm({ ...form, weight_max_kg: e.target.value })} /></div>
+      <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
+      <div><Label>Prazo (dias úteis)</Label><Input type="number" value={form.deadline_days} onChange={(e) => setForm({ ...form, deadline_days: e.target.value })} /></div>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativa</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.provisional} onChange={(e) => setForm({ ...form, provisional: e.target.checked })} /> Provisória</label>
+    </div>
+    <DialogFooter><Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button><Button disabled={saving} onClick={async () => {
+      setSaving(true);
+      try { await onSave({ name: form.name.trim(), zip_start: form.zip_start, zip_end: form.zip_end, weight_min_kg: Number(form.weight_min_kg), weight_max_kg: Number(form.weight_max_kg), price_cents: Math.round(Number(form.price) * 100), deadline_days: Number(form.deadline_days), active: form.active, provisional: form.provisional }); }
+      catch (error) { toast.error(error instanceof Error ? error.message : "Erro ao salvar"); }
+      finally { setSaving(false); }
+    }}>{saving ? "Salvando..." : "Salvar"}</Button></DialogFooter>
+  </DialogContent></Dialog>;
+}
+
 // ========== MESSAGES ==========
 type MsgRow = Awaited<ReturnType<typeof adminListContactMessages>>[number];
 function MessagesPanel() {
