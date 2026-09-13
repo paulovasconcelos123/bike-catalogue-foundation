@@ -342,7 +342,13 @@ export const adminGetShipping = createServerFn({ method: "GET" })
     const [{ data: config, error: configError }, { data: rates, error: ratesError }] =
       await Promise.all([
         supabaseAdmin.from("shipping_config").select("*").eq("id", true).single(),
-        supabaseAdmin.from("shipping_rates").select("*").order("zip_start").order("weight_min_kg"),
+        supabaseAdmin
+          .from("shipping_rates")
+          .select("*")
+          .order("zip_start", { ascending: true })
+          .order("zip_end", { ascending: true })
+          .order("weight_min_kg", { ascending: true })
+          .order("weight_max_kg", { ascending: true }),
       ]);
     if (configError) throw new Error(configError.message);
     if (ratesError) throw new Error(ratesError.message);
@@ -370,18 +376,35 @@ export const adminUpdateShippingConfig = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const shippingRateInput = z.object({
-  id: z.string().uuid().optional(),
-  name: z.string().trim().min(1).max(120),
-  zip_start: z.string().regex(/^\d{8}$/),
-  zip_end: z.string().regex(/^\d{8}$/),
-  weight_min_kg: z.number().nonnegative(),
-  weight_max_kg: z.number().positive(),
-  price_cents: z.number().int().nonnegative(),
-  deadline_days: z.number().int().positive(),
-  active: z.boolean(),
-  provisional: z.boolean(),
-});
+const shippingRateInput = z
+  .object({
+    id: z.string().uuid().optional(),
+    name: z.string().trim().min(1).max(120),
+    zip_start: z.string().regex(/^\d{8}$/, "Informe o CEP inicial com 8 dígitos"),
+    zip_end: z.string().regex(/^\d{8}$/, "Informe o CEP final com 8 dígitos"),
+    weight_min_kg: z.number().nonnegative("O peso mínimo não pode ser negativo"),
+    weight_max_kg: z.number().positive("O peso máximo deve ser maior que zero"),
+    price_cents: z.number().int().nonnegative("O valor não pode ser negativo"),
+    deadline_days: z.number().int().positive("O prazo deve ser maior que zero"),
+    active: z.boolean(),
+    provisional: z.boolean(),
+  })
+  .superRefine((rate, issueContext) => {
+    if (rate.zip_start > rate.zip_end) {
+      issueContext.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["zip_end"],
+        message: "O CEP final deve ser igual ou posterior ao CEP inicial",
+      });
+    }
+    if (rate.weight_min_kg >= rate.weight_max_kg) {
+      issueContext.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["weight_max_kg"],
+        message: "O peso máximo deve ser maior que o peso mínimo",
+      });
+    }
+  });
 
 export const adminUpsertShippingRate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -390,6 +413,23 @@ export const adminUpsertShippingRate = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { id, ...row } = data;
+    const { data: existingRates, error: overlapError } = await supabaseAdmin
+      .from("shipping_rates")
+      .select("id, name, zip_start, zip_end, weight_min_kg, weight_max_kg");
+    if (overlapError) throw new Error(overlapError.message);
+    const overlappingRate = (existingRates ?? []).find((rate) => {
+      if (rate.id === id) return false;
+      const zipOverlaps = row.zip_start <= rate.zip_end && row.zip_end >= rate.zip_start;
+      const weightOverlaps =
+        row.weight_min_kg < Number(rate.weight_max_kg) &&
+        row.weight_max_kg > Number(rate.weight_min_kg);
+      return zipOverlaps && weightOverlaps;
+    });
+    if (overlappingRate) {
+      throw new Error(
+        `A faixa se sobrepõe à tarifa “${overlappingRate.name}” (${overlappingRate.zip_start}–${overlappingRate.zip_end}, ${Number(overlappingRate.weight_min_kg)}–${Number(overlappingRate.weight_max_kg)} kg)`,
+      );
+    }
     if (id) {
       const { error } = await supabaseAdmin.from("shipping_rates").update(row).eq("id", id);
       if (error) throw new Error(error.message);

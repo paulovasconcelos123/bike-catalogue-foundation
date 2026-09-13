@@ -1078,6 +1078,8 @@ function ShippingPanel() {
   const [editing, setEditing] = useState<ShippingRate | null>(null);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<"zip" | "weight">("zip");
   const [config, setConfig] = useState({
     superfrete_enabled: true,
     origin_zip: "54589050",
@@ -1105,6 +1107,44 @@ function ShippingPanel() {
   useEffect(() => {
     refresh().catch((error) => toast.error(error.message));
   }, []);
+
+  const sortedRates = useMemo(() => {
+    if (!data) return [];
+    return [...data.rates].sort((first, second) => {
+      if (sortMode === "weight") {
+        return (
+          Number(first.weight_min_kg) - Number(second.weight_min_kg) ||
+          Number(first.weight_max_kg) - Number(second.weight_max_kg) ||
+          first.zip_start.localeCompare(second.zip_start)
+        );
+      }
+      return (
+        first.zip_start.localeCompare(second.zip_start) ||
+        first.zip_end.localeCompare(second.zip_end) ||
+        Number(first.weight_min_kg) - Number(second.weight_min_kg)
+      );
+    });
+  }, [data, sortMode]);
+
+  async function handleDeleteRate(rate: ShippingRate) {
+    if (
+      !confirm(
+        `Excluir a tarifa “${rate.name}” para CEP ${rate.zip_start}–${rate.zip_end}? Esta ação não pode ser desfeita.`,
+      )
+    ) {
+      return;
+    }
+    setDeletingId(rate.id);
+    try {
+      await deleteRate({ data: { id: rate.id } });
+      toast.success("Tarifa removida");
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao remover tarifa");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function saveConfig() {
     setSaving(true);
@@ -1216,16 +1256,31 @@ function ShippingPanel() {
       </section>
 
       <section>
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-xl uppercase">Tarifas de contingência</h2>
             <p className="text-sm text-muted-foreground">
               Valores provisórios: revise antes de usar em produção.
             </p>
           </div>
-          <Button onClick={() => { setEditing(null); setOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Nova tarifa
-          </Button>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-44">
+              <Label htmlFor="shipping-sort">Ordenar por</Label>
+              <Select
+                value={sortMode}
+                onValueChange={(value) => setSortMode(value === "weight" ? "weight" : "zip")}
+              >
+                <SelectTrigger id="shipping-sort"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="zip">Faixa de CEP</SelectItem>
+                  <SelectItem value="weight">Faixa de peso</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={() => { setEditing(null); setOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" /> Nova tarifa
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto rounded-md border">
           <Table>
@@ -1235,7 +1290,7 @@ function ShippingPanel() {
               <TableHead>Prazo</TableHead><TableHead>Status</TableHead><TableHead />
             </TableRow></TableHeader>
             <TableBody>
-              {data.rates.map((rate) => (
+              {sortedRates.map((rate) => (
                 <TableRow key={rate.id}>
                   <TableCell>{rate.name}</TableCell>
                   <TableCell className="whitespace-nowrap text-xs">{rate.zip_start}–{rate.zip_end}</TableCell>
@@ -1245,15 +1300,29 @@ function ShippingPanel() {
                   <TableCell><Badge variant={rate.active ? "default" : "secondary"}>{rate.active ? "Ativa" : "Inativa"}</Badge></TableCell>
                   <TableCell><div className="flex justify-end gap-1">
                     <Button size="icon" variant="ghost" onClick={() => { setEditing(rate); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={async () => {
-                      if (!confirm("Remover esta tarifa?")) return;
-                      await deleteRate({ data: { id: rate.id } });
-                      toast.success("Tarifa removida");
-                      refresh();
-                    }}><Trash2 className="h-4 w-4" /></Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Excluir tarifa ${rate.name}`}
+                      disabled={deletingId === rate.id}
+                      onClick={() => handleDeleteRate(rate)}
+                    >
+                      {deletingId === rate.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div></TableCell>
                 </TableRow>
               ))}
+              {sortedRates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    Nenhuma tarifa de contingência cadastrada.
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </div>
@@ -1294,8 +1363,8 @@ function ShippingRateDialog({ open, editing, onOpenChange, onSave }: {
     <DialogHeader><DialogTitle>{editing ? "Editar tarifa" : "Nova tarifa"}</DialogTitle></DialogHeader>
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2"><Label>Nome / região</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-      <div><Label>CEP inicial</Label><Input value={form.zip_start} onChange={(e) => setForm({ ...form, zip_start: e.target.value.replace(/\D/g, "") })} /></div>
-      <div><Label>CEP final</Label><Input value={form.zip_end} onChange={(e) => setForm({ ...form, zip_end: e.target.value.replace(/\D/g, "") })} /></div>
+       <div><Label>CEP inicial</Label><Input inputMode="numeric" maxLength={8} value={form.zip_start} onChange={(e) => setForm({ ...form, zip_start: e.target.value.replace(/\D/g, "").slice(0, 8) })} /></div>
+       <div><Label>CEP final</Label><Input inputMode="numeric" maxLength={8} value={form.zip_end} onChange={(e) => setForm({ ...form, zip_end: e.target.value.replace(/\D/g, "").slice(0, 8) })} /></div>
       <div><Label>Peso mínimo (kg)</Label><Input type="number" step="0.001" value={form.weight_min_kg} onChange={(e) => setForm({ ...form, weight_min_kg: e.target.value })} /></div>
       <div><Label>Peso máximo (kg)</Label><Input type="number" step="0.001" value={form.weight_max_kg} onChange={(e) => setForm({ ...form, weight_max_kg: e.target.value })} /></div>
       <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} /></div>
@@ -1305,7 +1374,19 @@ function ShippingRateDialog({ open, editing, onOpenChange, onSave }: {
     </div>
     <DialogFooter><Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button><Button disabled={saving} onClick={async () => {
       setSaving(true);
-      try { await onSave({ name: form.name.trim(), zip_start: form.zip_start, zip_end: form.zip_end, weight_min_kg: Number(form.weight_min_kg), weight_max_kg: Number(form.weight_max_kg), price_cents: Math.round(Number(form.price) * 100), deadline_days: Number(form.deadline_days), active: form.active, provisional: form.provisional }); }
+       try {
+         const weightMin = Number(form.weight_min_kg);
+         const weightMax = Number(form.weight_max_kg);
+         const priceCents = Math.round(Number(form.price) * 100);
+         const deadlineDays = Number(form.deadline_days);
+         if (!form.name.trim()) throw new Error("Informe o nome ou região da tarifa");
+         if (form.zip_start.length !== 8 || form.zip_end.length !== 8) throw new Error("Informe os CEPs com 8 dígitos");
+         if (form.zip_start > form.zip_end) throw new Error("O CEP final deve ser igual ou posterior ao CEP inicial");
+         if (!Number.isFinite(weightMin) || !Number.isFinite(weightMax) || weightMin < 0 || weightMax <= weightMin) throw new Error("O peso máximo deve ser maior que o peso mínimo");
+         if (!Number.isFinite(priceCents) || priceCents < 0) throw new Error("Informe um valor válido");
+         if (!Number.isInteger(deadlineDays) || deadlineDays <= 0) throw new Error("Informe um prazo válido em dias úteis");
+         await onSave({ name: form.name.trim(), zip_start: form.zip_start, zip_end: form.zip_end, weight_min_kg: weightMin, weight_max_kg: weightMax, price_cents: priceCents, deadline_days: deadlineDays, active: form.active, provisional: form.provisional });
+       }
       catch (error) { toast.error(error instanceof Error ? error.message : "Erro ao salvar"); }
       finally { setSaving(false); }
     }}>{saving ? "Salvando..." : "Salvar"}</Button></DialogFooter>
