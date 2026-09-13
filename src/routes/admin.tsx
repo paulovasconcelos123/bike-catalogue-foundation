@@ -1268,7 +1268,7 @@ function ShippingPanel() {
               <Label htmlFor="shipping-sort">Ordenar por</Label>
               <Select
                 value={sortMode}
-                onValueChange={(value: "zip" | "weight") => setSortMode(value)}
+                onValueChange={(value) => setSortMode(value === "weight" ? "weight" : "zip")}
               >
                 <SelectTrigger id="shipping-sort"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -1316,6 +1316,13 @@ function ShippingPanel() {
                   </div></TableCell>
                 </TableRow>
               ))}
+              {sortedRates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    Nenhuma tarifa de contingência cadastrada.
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </div>
