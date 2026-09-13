@@ -48,6 +48,10 @@ import {
   adminUpsertCategory,
   adminUpsertProduct,
   adminUpsertSubcategory,
+  adminDeleteShippingRate,
+  adminGetShipping,
+  adminUpdateShippingConfig,
+  adminUpsertShippingRate,
 } from "@/lib/admin.functions";
 import {
   adminDeleteCoupon,
@@ -98,6 +102,7 @@ function AdminPage() {
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="cupons">Cupons</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
+          <TabsTrigger value="frete">Frete</TabsTrigger>
           <TabsTrigger value="mensagens">Mensagens</TabsTrigger>
         </TabsList>
         <TabsContent value="produtos">
@@ -114,6 +119,9 @@ function AdminPage() {
         </TabsContent>
         <TabsContent value="avaliacoes">
           <ReviewsPanel />
+        </TabsContent>
+        <TabsContent value="frete">
+          <ShippingPanel />
         </TabsContent>
         <TabsContent value="mensagens">
           <MessagesPanel />
@@ -275,6 +283,10 @@ function ProductDialog({
     images: [] as string[],
     video_url: null as string | null,
     featured: false,
+    weight_kg: "0.5",
+    height_cm: "10",
+    width_cm: "15",
+    length_cm: "20",
   });
   const [saving, setSaving] = useState(false);
 
@@ -292,6 +304,10 @@ function ProductDialog({
         images: (editing.images as string[]) ?? [],
         video_url: (editing as any).video_url ?? null,
         featured: editing.featured,
+        weight_kg: String(editing.weight_kg),
+        height_cm: String(editing.height_cm),
+        width_cm: String(editing.width_cm),
+        length_cm: String(editing.length_cm),
       });
     } else {
       setForm({
@@ -305,6 +321,10 @@ function ProductDialog({
         images: [],
         video_url: null,
         featured: false,
+        weight_kg: "0.5",
+        height_cm: "10",
+        width_cm: "15",
+        length_cm: "20",
       });
     }
   }, [open, editing, cats]);
@@ -330,6 +350,10 @@ function ProductDialog({
           images: form.images,
           video_url: form.video_url,
           featured: form.featured,
+          weight_kg: Number(form.weight_kg),
+          height_cm: Number(form.height_cm),
+          width_cm: Number(form.width_cm),
+          length_cm: Number(form.length_cm),
         },
       });
       toast.success(editing ? "Produto atualizado" : "Produto criado");
@@ -389,6 +413,44 @@ function ProductDialog({
                 type="number"
                 value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: e.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Medidas para frete</Label>
+            <div className="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Input
+                type="number"
+                min="0.001"
+                step="0.001"
+                aria-label="Peso em quilogramas"
+                placeholder="Peso (kg)"
+                value={form.weight_kg}
+                onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
+              />
+              <Input
+                type="number"
+                min="1"
+                aria-label="Altura em centímetros"
+                placeholder="Altura (cm)"
+                value={form.height_cm}
+                onChange={(e) => setForm({ ...form, height_cm: e.target.value })}
+              />
+              <Input
+                type="number"
+                min="1"
+                aria-label="Largura em centímetros"
+                placeholder="Largura (cm)"
+                value={form.width_cm}
+                onChange={(e) => setForm({ ...form, width_cm: e.target.value })}
+              />
+              <Input
+                type="number"
+                min="1"
+                aria-label="Comprimento em centímetros"
+                placeholder="Compr. (cm)"
+                value={form.length_cm}
+                onChange={(e) => setForm({ ...form, length_cm: e.target.value })}
               />
             </div>
           </div>
@@ -646,6 +708,20 @@ function OrdersPanel() {
                 <div className="mt-2 flex justify-between border-t pt-2 font-semibold">
                   <span>Total</span>
                   <span>{formatBRL(selected.total_cents)}</span>
+                </div>
+                <div className="mt-2 space-y-1 border-t pt-2 text-muted-foreground">
+                  <div className="flex justify-between">
+                    <span>Frete</span>
+                    <span>{formatBRL(selected.shipping_cents)}</span>
+                  </div>
+                  <div>
+                    {selected.shipping_method === "pickup"
+                      ? "Retirada na loja"
+                      : `${selected.shipping_carrier ?? "Entrega"} · ${selected.shipping_service_name ?? ""}`}
+                    {selected.shipping_deadline_days
+                      ? ` · até ${selected.shipping_deadline_days} dias úteis`
+                      : ""}
+                  </div>
                 </div>
               </div>
               <div>
