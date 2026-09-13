@@ -85,6 +85,12 @@ function CartPage() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {formatBRL(item.price_cents)} un.
                 </p>
+                {(item.category_slug === "bicicletas" ||
+                  item.category_slug === "manutencao-servicos") && (
+                  <p className="mt-1 text-xs font-semibold text-secondary">
+                    Retirada na loja
+                  </p>
+                )}
 
                 <div className="mt-auto flex items-center justify-between pt-3">
                   <div className="inline-flex items-center rounded-md border border-input">

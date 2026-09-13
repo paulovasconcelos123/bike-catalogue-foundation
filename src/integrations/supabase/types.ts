@@ -232,7 +232,14 @@ export type Database = {
           id: string
           mp_payment_id: string | null
           mp_preference_id: string | null
+          shipping_carrier: string | null
+          shipping_cents: number
+          shipping_deadline_days: number | null
+          shipping_method: string
+          shipping_service_id: string | null
+          shipping_service_name: string | null
           status: Database["public"]["Enums"]["order_status"]
+          subtotal_cents: number
           total_cents: number
           updated_at: string
           user_id: string | null
@@ -254,7 +261,14 @@ export type Database = {
           id?: string
           mp_payment_id?: string | null
           mp_preference_id?: string | null
+          shipping_carrier?: string | null
+          shipping_cents?: number
+          shipping_deadline_days?: number | null
+          shipping_method?: string
+          shipping_service_id?: string | null
+          shipping_service_name?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          subtotal_cents?: number
           total_cents: number
           updated_at?: string
           user_id?: string | null
@@ -276,7 +290,14 @@ export type Database = {
           id?: string
           mp_payment_id?: string | null
           mp_preference_id?: string | null
+          shipping_carrier?: string | null
+          shipping_cents?: number
+          shipping_deadline_days?: number | null
+          shipping_method?: string
+          shipping_service_id?: string | null
+          shipping_service_name?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          subtotal_cents?: number
           total_cents?: number
           updated_at?: string
           user_id?: string | null
@@ -369,42 +390,54 @@ export type Database = {
           created_at: string
           description: string
           featured: boolean
+          height_cm: number
           id: string
           images: string[]
+          length_cm: number
           name: string
           price_cents: number
           slug: string
           stock: number
           subcategory_id: string | null
           video_url: string | null
+          weight_kg: number
+          width_cm: number
         }
         Insert: {
           category_id: string
           created_at?: string
           description?: string
           featured?: boolean
+          height_cm?: number
           id?: string
           images?: string[]
+          length_cm?: number
           name: string
           price_cents?: number
           slug: string
           stock?: number
           subcategory_id?: string | null
           video_url?: string | null
+          weight_kg?: number
+          width_cm?: number
         }
         Update: {
           category_id?: string
           created_at?: string
           description?: string
           featured?: boolean
+          height_cm?: number
           id?: string
           images?: string[]
+          length_cm?: number
           name?: string
           price_cents?: number
           slug?: string
           stock?: number
           subcategory_id?: string | null
           video_url?: string | null
+          weight_kg?: number
+          width_cm?: number
         }
         Relationships: [
           {
@@ -441,6 +474,87 @@ export type Database = {
           full_name?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      shipping_config: {
+        Row: {
+          default_height_cm: number
+          default_length_cm: number
+          default_weight_kg: number
+          default_width_cm: number
+          enabled_services: string
+          id: boolean
+          origin_zip: string
+          superfrete_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          default_height_cm?: number
+          default_length_cm?: number
+          default_weight_kg?: number
+          default_width_cm?: number
+          enabled_services?: string
+          id?: boolean
+          origin_zip?: string
+          superfrete_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          default_height_cm?: number
+          default_length_cm?: number
+          default_weight_kg?: number
+          default_width_cm?: number
+          enabled_services?: string
+          id?: boolean
+          origin_zip?: string
+          superfrete_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shipping_rates: {
+        Row: {
+          active: boolean
+          created_at: string
+          deadline_days: number
+          id: string
+          name: string
+          price_cents: number
+          provisional: boolean
+          updated_at: string
+          weight_max_kg: number
+          weight_min_kg: number
+          zip_end: string
+          zip_start: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          deadline_days: number
+          id?: string
+          name: string
+          price_cents: number
+          provisional?: boolean
+          updated_at?: string
+          weight_max_kg: number
+          weight_min_kg?: number
+          zip_end: string
+          zip_start: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          deadline_days?: number
+          id?: string
+          name?: string
+          price_cents?: number
+          provisional?: boolean
+          updated_at?: string
+          weight_max_kg?: number
+          weight_min_kg?: number
+          zip_end?: string
+          zip_start?: string
         }
         Relationships: []
       }

@@ -24,6 +24,7 @@ const checkoutSchema = z.object({
   }),
   items: z.array(itemSchema).min(1).max(50),
   coupon_code: z.string().trim().max(60).optional().or(z.literal("")),
+  shipping_option_id: z.string().trim().min(1).max(120),
 });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
@@ -41,8 +42,30 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
       "@/integrations/supabase/client.server"
     );
 
-    const totalCents = data.items.reduce(
-      (sum, i) => sum + i.unit_price_cents * i.quantity,
+    const productIds = [...new Set(data.items.map((item) => item.product_id))];
+    const { data: currentProducts, error: productsError } = await supabaseAdmin
+      .from("products")
+      .select("id, name, price_cents, stock")
+      .in("id", productIds);
+    if (productsError || !currentProducts || currentProducts.length !== productIds.length) {
+      throw new Error("Um produto do carrinho não está mais disponível");
+    }
+    const productsById = new Map(currentProducts.map((product) => [product.id, product]));
+    const authoritativeItems = data.items.map((item) => {
+      const product = productsById.get(item.product_id);
+      if (!product) throw new Error("Produto indisponível");
+      if (item.quantity > product.stock) {
+        throw new Error(`Estoque insuficiente para ${product.name}`);
+      }
+      return {
+        product_id: product.id,
+        product_name: product.name,
+        unit_price_cents: product.price_cents,
+        quantity: item.quantity,
+      };
+    });
+    const totalCents = authoritativeItems.reduce(
+      (sum, item) => sum + item.unit_price_cents * item.quantity,
       0,
     );
 
@@ -58,7 +81,20 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
       discountCents = result.discount_cents;
       couponCode = result.code;
     }
-    const finalCents = totalCents - discountCents;
+    const { calculateShippingInternal } = await import("./shipping.server");
+    const shippingQuote = await calculateShippingInternal(
+      data.address.zip,
+      authoritativeItems.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+      })),
+    );
+    const shippingOption = shippingQuote.options.find(
+      (option) => option.id === data.shipping_option_id,
+    );
+    if (!shippingOption) throw new Error("Opção de frete inválida ou desatualizada");
+    const shippingCents = shippingOption.priceCents;
+    const finalCents = totalCents - discountCents + shippingCents;
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
@@ -73,6 +109,13 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
         address_city: data.address.city,
         address_state: data.address.state.toUpperCase(),
         address_zip: data.address.zip.replace(/\D/g, ""),
+        subtotal_cents: totalCents,
+        shipping_cents: shippingCents,
+        shipping_method: shippingOption.source === "pickup" ? "pickup" : "delivery",
+        shipping_service_id: shippingOption.serviceId,
+        shipping_service_name: shippingOption.serviceName,
+        shipping_carrier: shippingOption.carrier,
+        shipping_deadline_days: shippingOption.deadlineDays,
         total_cents: finalCents,
         discount_cents: discountCents,
         coupon_code: couponCode,
@@ -90,7 +133,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
     const { error: itemsError } = await supabaseAdmin
       .from("order_items")
       .insert(
-        data.items.map((i) => ({
+        authoritativeItems.map((i) => ({
           order_id: order.id,
           product_id: i.product_id,
           product_name: i.product_name,
@@ -110,7 +153,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
     const origin = new URL(req.url).origin;
 
     // Apply discount pro-rata across items so MP total equals finalCents
-    const mpItems = data.items.map((i) => ({
+    const mpItems = authoritativeItems.map((i) => ({
       id: i.product_id,
       title: i.product_name,
       quantity: i.quantity,
@@ -131,14 +174,24 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
       }
     }
 
-    const preferencePayload = {
-      items: mpItems.map((i) => ({
+    const preferenceItems = mpItems.map((i) => ({
         id: i.id,
         title: i.title,
         quantity: i.quantity,
         unit_price: i.unit_price_cents / 100,
         currency_id: "BRL",
-      })),
+      }));
+    if (shippingCents > 0) {
+      preferenceItems.push({
+        id: "shipping",
+        title: `Frete — ${shippingOption.serviceName}`,
+        quantity: 1,
+        unit_price: shippingCents / 100,
+        currency_id: "BRL",
+      });
+    }
+    const preferencePayload = {
+      items: preferenceItems,
       payer: {
         name: data.customer_name,
         email: data.customer_email,
@@ -201,7 +254,7 @@ export const getOrderSummary = createServerFn({ method: "GET" })
     );
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("id, status, total_cents, customer_name, created_at")
+      .select("id, status, subtotal_cents, discount_cents, shipping_cents, shipping_method, shipping_service_name, shipping_carrier, shipping_deadline_days, total_cents, customer_name, created_at")
       .eq("id", data.order_id)
       .maybeSingle();
     if (error) {
@@ -224,7 +277,7 @@ export const getMyOrders = createServerFn({ method: "GET" })
     );
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("id, status, total_cents, created_at")
+      .select("id, status, subtotal_cents, discount_cents, shipping_cents, shipping_method, shipping_service_name, shipping_carrier, shipping_deadline_days, total_cents, created_at")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) {

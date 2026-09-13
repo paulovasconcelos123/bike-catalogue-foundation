@@ -23,6 +23,7 @@ const STATUS_LABEL: Record<string, string> = {
   paid: "Pago",
   cancelled: "Cancelado",
   failed: "Falhou",
+  delivered: "Entregue",
 };
 
 const STATUS_CLASS: Record<string, string> = {
@@ -30,6 +31,7 @@ const STATUS_CLASS: Record<string, string> = {
   paid: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   cancelled: "bg-muted text-muted-foreground",
   failed: "bg-destructive/15 text-destructive",
+  delivered: "bg-secondary/15 text-secondary",
 };
 
 type Order = Awaited<ReturnType<typeof getMyOrders>>[number];
@@ -138,6 +140,10 @@ function MinhaContaPage() {
                     </li>
                   ))}
                 </ul>
+                <div className="mt-3 flex justify-between text-sm text-muted-foreground">
+                  <span>{order.shipping_method === "pickup" ? "Retirada na loja" : order.shipping_service_name ?? "Frete"}</span>
+                  <span>{order.shipping_cents === 0 ? "Grátis" : formatBRL(order.shipping_cents)}</span>
+                </div>
 
                 <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
                   <span className="font-display text-sm uppercase text-foreground">
