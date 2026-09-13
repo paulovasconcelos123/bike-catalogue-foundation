@@ -38,7 +38,7 @@ export const adminListProducts = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, slug, name, description, price_cents, stock, images, video_url, featured, category_id, subcategory_id, category:categories(id, name, slug), subcategory:subcategories(id, name, slug)",
+        "id, slug, name, description, price_cents, stock, images, video_url, featured, weight_kg, height_cm, width_cm, length_cm, category_id, subcategory_id, category:categories(id, name, slug), subcategory:subcategories(id, name, slug)",
       )
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -63,6 +63,10 @@ const productInput = z.object({
   images: z.array(z.string().trim().max(1000)).default([]),
   video_url: z.string().trim().max(1000).nullable().optional(),
   featured: z.boolean().default(false),
+  weight_kg: z.number().positive().max(120),
+  height_cm: z.number().int().positive().max(200),
+  width_cm: z.number().int().positive().max(200),
+  length_cm: z.number().int().positive().max(200),
 });
 
 export const adminUpsertProduct = createServerFn({ method: "POST" })
@@ -84,6 +88,10 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
       images: data.images,
       video_url: data.video_url ?? null,
       featured: data.featured,
+      weight_kg: data.weight_kg,
+      height_cm: data.height_cm,
+      width_cm: data.width_cm,
+      length_cm: data.length_cm,
     };
 
     if (data.id) {
@@ -323,4 +331,82 @@ export const adminListContactMessages = createServerFn({ method: "GET" })
       .limit(500);
     if (error) throw new Error(error.message);
     return data ?? [];
+  });
+
+// ---------- SHIPPING ----------
+export const adminGetShipping = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: config, error: configError }, { data: rates, error: ratesError }] =
+      await Promise.all([
+        supabaseAdmin.from("shipping_config").select("*").eq("id", true).single(),
+        supabaseAdmin.from("shipping_rates").select("*").order("zip_start").order("weight_min_kg"),
+      ]);
+    if (configError) throw new Error(configError.message);
+    if (ratesError) throw new Error(ratesError.message);
+    return { config, rates: rates ?? [], tokenConfigured: Boolean(process.env["SUPERFRETE_TOKEN"]) };
+  });
+
+const shippingConfigInput = z.object({
+  superfrete_enabled: z.boolean(),
+  origin_zip: z.string().regex(/^\d{8}$/),
+  enabled_services: z.string().trim().min(1).max(100),
+  default_weight_kg: z.number().positive().max(120),
+  default_height_cm: z.number().int().positive().max(200),
+  default_width_cm: z.number().int().positive().max(200),
+  default_length_cm: z.number().int().positive().max(200),
+});
+
+export const adminUpdateShippingConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => shippingConfigInput.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("shipping_config").update(data).eq("id", true);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const shippingRateInput = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(1).max(120),
+  zip_start: z.string().regex(/^\d{8}$/),
+  zip_end: z.string().regex(/^\d{8}$/),
+  weight_min_kg: z.number().nonnegative(),
+  weight_max_kg: z.number().positive(),
+  price_cents: z.number().int().nonnegative(),
+  deadline_days: z.number().int().positive(),
+  active: z.boolean(),
+  provisional: z.boolean(),
+});
+
+export const adminUpsertShippingRate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => shippingRateInput.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { id, ...row } = data;
+    if (id) {
+      const { error } = await supabaseAdmin.from("shipping_rates").update(row).eq("id", id);
+      if (error) throw new Error(error.message);
+      return { id };
+    }
+    const { data: inserted, error } = await supabaseAdmin.from("shipping_rates").insert(row).select("id").single();
+    if (error) throw new Error(error.message);
+    return { id: inserted.id };
+  });
+
+export const adminDeleteShippingRate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("shipping_rates").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
