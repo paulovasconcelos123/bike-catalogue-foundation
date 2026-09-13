@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ShippingOption, ShippingQuote } from "./shipping.types";
 
 export const shippingItemsSchema = z
   .array(
@@ -11,25 +12,6 @@ export const shippingItemsSchema = z
   .max(50);
 
 export type ShippingRequestItem = z.infer<typeof shippingItemsSchema>[number];
-
-export type ShippingOption = {
-  id: string;
-  source: "superfrete" | "fallback" | "pickup";
-  serviceId: string;
-  serviceName: string;
-  carrier: string;
-  priceCents: number;
-  deadlineDays: number;
-};
-
-export type ShippingQuote = {
-  options: ShippingOption[];
-  pickupProductIds: string[];
-  shippableProductIds: string[];
-  hasPickupItems: boolean;
-  hasShippableItems: boolean;
-  fallbackUsed: boolean;
-};
 
 const SHIPPABLE_CATEGORIES = new Set([
   "pecas-componentes",
@@ -198,7 +180,7 @@ export async function calculateShippingInternal(
     .eq("active", true)
     .lte("zip_start", zip)
     .gte("zip_end", zip)
-    .lte("weight_min_kg", totalWeight)
+    .lt("weight_min_kg", totalWeight)
     .gte("weight_max_kg", totalWeight)
     .order("price_cents", { ascending: true });
   if (ratesError) throw new Error("Não foi possível calcular o frete de contingência");

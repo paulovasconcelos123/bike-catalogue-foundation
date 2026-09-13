@@ -11,7 +11,7 @@ import { formatBRL } from "@/lib/format";
 import { createPaymentPreference } from "@/lib/checkout.functions";
 import { validateCoupon, type CouponValidation } from "@/lib/coupons.functions";
 import { getShippingOptions } from "@/lib/shipping.functions";
-import type { ShippingOption, ShippingQuote } from "@/lib/shipping.server";
+import type { ShippingOption, ShippingQuote } from "@/lib/shipping.types";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
