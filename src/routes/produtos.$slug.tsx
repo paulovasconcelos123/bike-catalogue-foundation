@@ -168,6 +168,7 @@ function ProductDetail() {
                   price_cents: product.price_cents,
                   image: product.images[0] ?? null,
                   stock: product.stock,
+                  category_slug: product.category.slug,
                 });
                 toast.success("Adicionado ao carrinho", {
                   description: product.name,

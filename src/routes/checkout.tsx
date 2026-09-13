@@ -10,6 +10,8 @@ import { useCart } from "@/lib/cart-context";
 import { formatBRL } from "@/lib/format";
 import { createPaymentPreference } from "@/lib/checkout.functions";
 import { validateCoupon, type CouponValidation } from "@/lib/coupons.functions";
+import { getShippingOptions } from "@/lib/shipping.functions";
+import type { ShippingOption, ShippingQuote } from "@/lib/shipping.server";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -54,6 +56,7 @@ function CheckoutPage() {
   const { user, loading: authLoading } = useAuth();
   const createPref = useServerFn(createPaymentPreference);
   const validateCouponFn = useServerFn(validateCoupon);
+  const quoteShipping = useServerFn(getShippingOptions);
   const [form, setForm] = useState<FormState>(initialState);
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
@@ -63,9 +66,14 @@ function CheckoutPage() {
   >(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState<string | null>(null);
 
   const discountCents = couponApplied?.discount_cents ?? 0;
-  const finalTotalCents = Math.max(0, totalCents - discountCents);
+  const shippingCents = selectedShipping?.priceCents ?? 0;
+  const finalTotalCents = Math.max(0, totalCents - discountCents + shippingCents);
 
   // Re-validate coupon whenever cart total changes to avoid stale discount
   useEffect(() => {
@@ -163,6 +171,7 @@ function CheckoutPage() {
         city: data.localidade || prev.city,
         state: data.uf || prev.state,
       }));
+      await calculateShipping(rawCep);
     } catch {
       toast.error("Não foi possível consultar o CEP");
     } finally {
@@ -170,10 +179,47 @@ function CheckoutPage() {
     }
   }
 
+  async function calculateShipping(rawZip = form.zip) {
+    const zip = rawZip.replace(/\D/g, "");
+    if (zip.length !== 8 || items.length === 0) return;
+    setShippingLoading(true);
+    setShippingError(null);
+    setSelectedShipping(null);
+    try {
+      const quote = await quoteShipping({
+        data: {
+          destination_zip: zip,
+          items: items.map((item) => ({
+            product_id: item.id,
+            quantity: item.quantity,
+          })),
+        },
+      });
+      setShippingQuote(quote);
+      if (quote.options.length === 1) setSelectedShipping(quote.options[0]);
+    } catch (error) {
+      setShippingQuote(null);
+      setShippingError(
+        error instanceof Error ? error.message : "Não foi possível calcular o frete",
+      );
+    } finally {
+      setShippingLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    setShippingQuote(null);
+    setSelectedShipping(null);
+  }, [items]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (items.length === 0) {
       toast.error("Seu carrinho está vazio");
+      return;
+    }
+    if (!selectedShipping) {
+      toast.error("Calcule e selecione uma opção de entrega");
       return;
     }
     setLoading(true);
@@ -199,6 +245,7 @@ function CheckoutPage() {
             quantity: i.quantity,
           })),
           coupon_code: couponApplied?.code ?? "",
+          shipping_option_id: selectedShipping.id,
         },
       });
       window.location.href = result.checkout_url;
@@ -285,6 +332,65 @@ function CheckoutPage() {
                 />
               </div>
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-xl uppercase text-foreground">
+                Entrega
+              </h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => calculateShipping()}
+                disabled={shippingLoading || form.zip.replace(/\D/g, "").length !== 8}
+              >
+                {shippingLoading ? "Calculando..." : "Calcular frete"}
+              </Button>
+            </div>
+            {shippingError && <p className="text-sm text-destructive">{shippingError}</p>}
+            {shippingQuote?.hasPickupItems && (
+              <p className="rounded-md bg-muted px-3 py-2 text-sm text-foreground">
+                Itens sinalizados como retirada serão separados para retirada na loja.
+              </p>
+            )}
+            {shippingQuote && (
+              <div className="grid gap-2">
+                {shippingQuote.options.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setSelectedShipping(option)}
+                    className={`flex items-center justify-between gap-4 rounded-md border p-3 text-left transition-colors ${
+                      selectedShipping?.id === option.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-card hover:bg-muted"
+                    }`}
+                  >
+                    <span>
+                      <span className="block font-semibold text-foreground">
+                        {option.serviceName}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {option.carrier}
+                        {option.deadlineDays > 0
+                          ? ` · até ${option.deadlineDays} dias úteis`
+                          : " · disponível após confirmação"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-bold text-foreground">
+                      {option.priceCents === 0 ? "Grátis" : formatBRL(option.priceCents)}
+                    </span>
+                  </button>
+                ))}
+                {shippingQuote.fallbackUsed && (
+                  <p className="text-xs text-muted-foreground">
+                    Cotação de contingência aplicada.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="space-y-4">
@@ -397,6 +503,12 @@ function CheckoutPage() {
               <li key={i.id} className="flex justify-between gap-3 text-sm">
                 <span className="text-foreground">
                   {i.quantity}× {i.name}
+                  {(i.category_slug === "bicicletas" ||
+                    i.category_slug === "manutencao-servicos") && (
+                    <span className="block text-xs font-semibold text-secondary">
+                      Retirada na loja
+                    </span>
+                  )}
                 </span>
                 <span className="shrink-0 font-medium text-foreground">
                   {formatBRL(i.price_cents * i.quantity)}
@@ -471,6 +583,16 @@ function CheckoutPage() {
                 <span>−{formatBRL(discountCents)}</span>
               </div>
             )}
+            <div className="flex justify-between text-muted-foreground">
+              <span>Frete</span>
+              <span>
+                {selectedShipping
+                  ? shippingCents === 0
+                    ? "Grátis"
+                    : formatBRL(shippingCents)
+                  : "A calcular"}
+              </span>
+            </div>
             <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2">
               <span className="font-display text-lg uppercase text-foreground">
                 Total
@@ -481,8 +603,7 @@ function CheckoutPage() {
             </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Pagamento processado com segurança pelo Mercado Pago. Frete
-            combinado após a confirmação.
+            Pagamento processado com segurança pelo Mercado Pago.
           </p>
         </aside>
       </div>
