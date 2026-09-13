@@ -42,8 +42,30 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
       "@/integrations/supabase/client.server"
     );
 
-    const totalCents = data.items.reduce(
-      (sum, i) => sum + i.unit_price_cents * i.quantity,
+    const productIds = [...new Set(data.items.map((item) => item.product_id))];
+    const { data: currentProducts, error: productsError } = await supabaseAdmin
+      .from("products")
+      .select("id, name, price_cents, stock")
+      .in("id", productIds);
+    if (productsError || !currentProducts || currentProducts.length !== productIds.length) {
+      throw new Error("Um produto do carrinho não está mais disponível");
+    }
+    const productsById = new Map(currentProducts.map((product) => [product.id, product]));
+    const authoritativeItems = data.items.map((item) => {
+      const product = productsById.get(item.product_id);
+      if (!product) throw new Error("Produto indisponível");
+      if (item.quantity > product.stock) {
+        throw new Error(`Estoque insuficiente para ${product.name}`);
+      }
+      return {
+        product_id: product.id,
+        product_name: product.name,
+        unit_price_cents: product.price_cents,
+        quantity: item.quantity,
+      };
+    });
+    const totalCents = authoritativeItems.reduce(
+      (sum, item) => sum + item.unit_price_cents * item.quantity,
       0,
     );
 
@@ -62,7 +84,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
     const { calculateShippingInternal } = await import("./shipping.server");
     const shippingQuote = await calculateShippingInternal(
       data.address.zip,
-      data.items.map((item) => ({
+      authoritativeItems.map((item) => ({
         product_id: item.product_id,
         quantity: item.quantity,
       })),
@@ -111,7 +133,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
     const { error: itemsError } = await supabaseAdmin
       .from("order_items")
       .insert(
-        data.items.map((i) => ({
+        authoritativeItems.map((i) => ({
           order_id: order.id,
           product_id: i.product_id,
           product_name: i.product_name,
@@ -131,7 +153,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
     const origin = new URL(req.url).origin;
 
     // Apply discount pro-rata across items so MP total equals finalCents
-    const mpItems = data.items.map((i) => ({
+    const mpItems = authoritativeItems.map((i) => ({
       id: i.product_id,
       title: i.product_name,
       quantity: i.quantity,
