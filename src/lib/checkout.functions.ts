@@ -88,6 +88,7 @@ export const createPaymentPreference = createServerFn({ method: "POST" })
         product_id: item.product_id,
         quantity: item.quantity,
       })),
+      data.address,
     );
     const shippingOption = shippingQuote.options.find(
       (option) => option.id === data.shipping_option_id,
