@@ -487,6 +487,9 @@ export type Database = {
           id: boolean
           origin_zip: string
           superfrete_enabled: boolean
+          uber_direct_enabled: boolean
+          uber_direct_zip_end: string
+          uber_direct_zip_start: string
           updated_at: string
         }
         Insert: {
@@ -498,6 +501,9 @@ export type Database = {
           id?: boolean
           origin_zip?: string
           superfrete_enabled?: boolean
+          uber_direct_enabled?: boolean
+          uber_direct_zip_end?: string
+          uber_direct_zip_start?: string
           updated_at?: string
         }
         Update: {
@@ -509,6 +515,9 @@ export type Database = {
           id?: boolean
           origin_zip?: string
           superfrete_enabled?: boolean
+          uber_direct_enabled?: boolean
+          uber_direct_zip_end?: string
+          uber_direct_zip_start?: string
           updated_at?: string
         }
         Relationships: []
