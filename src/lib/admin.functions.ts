@@ -352,17 +352,30 @@ export const adminGetShipping = createServerFn({ method: "GET" })
       ]);
     if (configError) throw new Error(configError.message);
     if (ratesError) throw new Error(ratesError.message);
-    return { config, rates: rates ?? [], tokenConfigured: Boolean(process.env["SUPERFRETE_TOKEN"]) };
+    const { uberDirectCredentialsConfigured } = await import("./uber-direct.server");
+    return {
+      config,
+      rates: rates ?? [],
+      tokenConfigured: Boolean(process.env["SUPERFRETE_TOKEN"]),
+      uberDirectConfigured: uberDirectCredentialsConfigured(),
+      uberDirectEnvironment: "sandbox" as const,
+    };
   });
 
 const shippingConfigInput = z.object({
   superfrete_enabled: z.boolean(),
+  uber_direct_enabled: z.boolean(),
+  uber_direct_zip_start: z.string().regex(/^\d{8}$/),
+  uber_direct_zip_end: z.string().regex(/^\d{8}$/),
   origin_zip: z.string().regex(/^\d{8}$/),
   enabled_services: z.string().trim().min(1).max(100),
   default_weight_kg: z.number().positive().max(120),
   default_height_cm: z.number().int().positive().max(200),
   default_width_cm: z.number().int().positive().max(200),
   default_length_cm: z.number().int().positive().max(200),
+}).refine((config) => config.uber_direct_zip_start <= config.uber_direct_zip_end, {
+  path: ["uber_direct_zip_end"],
+  message: "O CEP local final deve ser igual ou posterior ao inicial",
 });
 
 export const adminUpdateShippingConfig = createServerFn({ method: "POST" })
