@@ -1082,6 +1082,9 @@ function ShippingPanel() {
   const [sortMode, setSortMode] = useState<"zip" | "weight">("zip");
   const [config, setConfig] = useState({
     superfrete_enabled: true,
+    uber_direct_enabled: true,
+    uber_direct_zip_start: "53000000",
+    uber_direct_zip_end: "55999999",
     origin_zip: "54589050",
     enabled_services: "1,2,17,3,31",
     default_weight_kg: "0.5",
@@ -1095,6 +1098,9 @@ function ShippingPanel() {
     setData(result);
     setConfig({
       superfrete_enabled: result.config.superfrete_enabled,
+      uber_direct_enabled: result.config.uber_direct_enabled,
+      uber_direct_zip_start: result.config.uber_direct_zip_start,
+      uber_direct_zip_end: result.config.uber_direct_zip_end,
       origin_zip: result.config.origin_zip,
       enabled_services: result.config.enabled_services,
       default_weight_kg: String(result.config.default_weight_kg),
@@ -1152,6 +1158,9 @@ function ShippingPanel() {
       await updateConfig({
         data: {
           superfrete_enabled: config.superfrete_enabled,
+          uber_direct_enabled: config.uber_direct_enabled,
+          uber_direct_zip_start: config.uber_direct_zip_start.replace(/\D/g, ""),
+          uber_direct_zip_end: config.uber_direct_zip_end.replace(/\D/g, ""),
           origin_zip: config.origin_zip.replace(/\D/g, ""),
           enabled_services: config.enabled_services,
           default_weight_kg: Number(config.default_weight_kg),
@@ -1175,9 +1184,15 @@ function ShippingPanel() {
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl uppercase">Configuração</h2>
-          <Badge variant={data.tokenConfigured ? "default" : "secondary"}>
-            SuperFrete {data.tokenConfigured ? "configurada" : "não configurada"}
-          </Badge>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={data.tokenConfigured ? "default" : "secondary"}>
+              SuperFrete {data.tokenConfigured ? "configurada" : "não configurada"}
+            </Badge>
+            <Badge variant={data.uberDirectConfigured ? "default" : "secondary"}>
+              Uber Direct {data.uberDirectConfigured ? "configurada" : "não configurada"}
+            </Badge>
+            <Badge variant="outline">Uber Direct · Sandbox</Badge>
+          </div>
         </div>
         <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
@@ -1189,6 +1204,16 @@ function ShippingPanel() {
               }
             />
             Tentar SuperFrete antes da contingência
+          </label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
+            <input
+              type="checkbox"
+              checked={config.uber_direct_enabled}
+              onChange={(event) =>
+                setConfig({ ...config, uber_direct_enabled: event.target.checked })
+              }
+            />
+            Oferecer Uber Direct na região local
           </label>
           <div>
             <Label>CEP de origem</Label>
@@ -1203,6 +1228,28 @@ function ShippingPanel() {
               value={config.enabled_services}
               onChange={(event) =>
                 setConfig({ ...config, enabled_services: event.target.value })
+              }
+            />
+          </div>
+          <div>
+            <Label>CEP local inicial</Label>
+            <Input
+              inputMode="numeric"
+              maxLength={8}
+              value={config.uber_direct_zip_start}
+              onChange={(event) =>
+                setConfig({ ...config, uber_direct_zip_start: event.target.value.replace(/\D/g, "") })
+              }
+            />
+          </div>
+          <div>
+            <Label>CEP local final</Label>
+            <Input
+              inputMode="numeric"
+              maxLength={8}
+              value={config.uber_direct_zip_end}
+              onChange={(event) =>
+                setConfig({ ...config, uber_direct_zip_end: event.target.value.replace(/\D/g, "") })
               }
             />
           </div>

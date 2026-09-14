@@ -1,11 +1,21 @@
 export type ShippingOption = {
   id: string;
-  source: "superfrete" | "fallback" | "pickup";
+  source: "superfrete" | "fallback" | "pickup" | "uber_direct";
   serviceId: string;
   serviceName: string;
   carrier: string;
   priceCents: number;
   deadlineDays: number;
+};
+
+export type ShippingAddress = {
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip: string;
 };
 
 export type ShippingQuote = {

@@ -189,6 +189,22 @@ function CheckoutPage() {
       const quote = await quoteShipping({
         data: {
           destination_zip: zip,
+          destination_address:
+            form.street.trim() &&
+            form.number.trim() &&
+            form.neighborhood.trim() &&
+            form.city.trim() &&
+            form.state.trim().length === 2
+              ? {
+                  street: form.street,
+                  number: form.number,
+                  complement: form.complement,
+                  neighborhood: form.neighborhood,
+                  city: form.city,
+                  state: form.state,
+                  zip,
+                }
+              : undefined,
           items: items.map((item) => ({
             product_id: item.id,
             quantity: item.quantity,
@@ -210,7 +226,7 @@ function CheckoutPage() {
   useEffect(() => {
     setShippingQuote(null);
     setSelectedShipping(null);
-  }, [items]);
+  }, [items, form.zip, form.street, form.number, form.complement, form.neighborhood, form.city, form.state]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -374,7 +390,9 @@ function CheckoutPage() {
                       </span>
                       <span className="block text-xs text-muted-foreground">
                         {option.carrier}
-                        {option.deadlineDays > 0
+                        {option.source === "uber_direct"
+                          ? " · entrega no mesmo dia"
+                          : option.deadlineDays > 0
                           ? ` · até ${option.deadlineDays} dias úteis`
                           : " · disponível após confirmação"}
                       </span>
