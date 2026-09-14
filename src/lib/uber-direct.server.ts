@@ -126,7 +126,8 @@ export async function quoteUberDirect(input: {
       fee?: number;
       currency?: string;
     };
-    if (!quote.id || !Number.isInteger(quote.fee) || quote.fee < 0 || quote.currency !== "BRL") {
+    const fee = quote.fee;
+    if (!quote.id || typeof fee !== "number" || !Number.isInteger(fee) || fee < 0 || quote.currency !== "BRL") {
       console.error("[shipping] Cotação Uber Direct inválida");
       return null;
     }
@@ -136,7 +137,7 @@ export async function quoteUberDirect(input: {
       serviceId: quote.id,
       serviceName: "Entrega no mesmo dia",
       carrier: "Uber Direct",
-      priceCents: quote.fee,
+      priceCents: fee,
       deadlineDays: 0,
     };
   } catch (error) {

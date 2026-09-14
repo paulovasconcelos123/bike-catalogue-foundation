@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ShippingOption, ShippingQuote } from "./shipping.types";
+import type { ShippingAddress, ShippingOption, ShippingQuote } from "./shipping.types";
 
 export const shippingItemsSchema = z
   .array(
@@ -31,6 +31,7 @@ function moneyToCents(value: unknown) {
 export async function calculateShippingInternal(
   destinationZip: string,
   requestedItems: ShippingRequestItem[],
+  destinationAddress?: ShippingAddress,
 ): Promise<ShippingQuote> {
   const zip = cleanZip(destinationZip);
   if (zip.length !== 8) throw new Error("CEP inválido");
@@ -96,7 +97,19 @@ export async function calculateShippingInternal(
     .maybeSingle();
   if (!config) throw new Error("Configuração de frete indisponível");
 
+  const isUberLocal =
+    config.uber_direct_enabled &&
+    zip >= config.uber_direct_zip_start &&
+    zip <= config.uber_direct_zip_end;
+  const uberPromise = isUberLocal && destinationAddress
+    ? import("./uber-direct.server").then(({ quoteUberDirect }) =>
+        quoteUberDirect({ originZip: config.origin_zip, destination: destinationAddress }),
+      )
+    : Promise.resolve(null);
+
   const token = process.env["SUPERFRETE_TOKEN"];
+  let standardOptions: ShippingOption[] = [];
+  let fallbackUsed = false;
   if (config.superfrete_enabled && token) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -150,14 +163,7 @@ export async function calculateShippingInternal(
             deadlineDays: Math.max(1, Number(option.delivery_time) || 1),
           }));
         if (options.length > 0) {
-          return {
-            options,
-            pickupProductIds: pickup.map((product) => product.id),
-            shippableProductIds: shippable.map((product) => product.id),
-            hasPickupItems: pickup.length > 0,
-            hasShippableItems: true,
-            fallbackUsed: false,
-          };
+          standardOptions = options;
         }
       } else {
         console.error("[shipping] SuperFrete respondeu", response.status);
@@ -169,39 +175,42 @@ export async function calculateShippingInternal(
     }
   }
 
-  const totalWeight = shippable.reduce(
-    (sum, product) =>
-      sum + Number(product.weight_kg || config.default_weight_kg) * product.quantity,
-    0,
-  );
-  const { data: rates, error: ratesError } = await supabaseAdmin
-    .from("shipping_rates")
-    .select("id, name, price_cents, deadline_days")
-    .eq("active", true)
-    .lte("zip_start", zip)
-    .gte("zip_end", zip)
-    .lt("weight_min_kg", totalWeight)
-    .gte("weight_max_kg", totalWeight)
-    .order("price_cents", { ascending: true });
-  if (ratesError) throw new Error("Não foi possível calcular o frete de contingência");
-  const options = (rates ?? []).map((rate) => ({
-    id: `fallback:${rate.id}`,
-    source: "fallback" as const,
-    serviceId: String(rate.id),
-    serviceName: rate.name,
-    carrier: "Frete de contingência",
-    priceCents: rate.price_cents,
-    deadlineDays: rate.deadline_days,
-  }));
-  if (options.length === 0) {
-    throw new Error("Não há tarifa de frete disponível para este CEP e peso");
+  if (standardOptions.length === 0) {
+    fallbackUsed = true;
+    const totalWeight = shippable.reduce(
+      (sum, product) =>
+        sum + Number(product.weight_kg || config.default_weight_kg) * product.quantity,
+      0,
+    );
+    const { data: rates, error: ratesError } = await supabaseAdmin
+      .from("shipping_rates")
+      .select("id, name, price_cents, deadline_days")
+      .eq("active", true)
+      .lte("zip_start", zip)
+      .gte("zip_end", zip)
+      .lt("weight_min_kg", totalWeight)
+      .gte("weight_max_kg", totalWeight)
+      .order("price_cents", { ascending: true });
+    if (ratesError) throw new Error("Não foi possível calcular o frete de contingência");
+    standardOptions = (rates ?? []).map((rate) => ({
+      id: `fallback:${rate.id}`,
+      source: "fallback" as const,
+      serviceId: String(rate.id),
+      serviceName: rate.name,
+      carrier: "Frete de contingência",
+      priceCents: rate.price_cents,
+      deadlineDays: rate.deadline_days,
+    }));
   }
+  const uberOption = await uberPromise;
+  const options = uberOption ? [...standardOptions, uberOption] : standardOptions;
+  if (options.length === 0) throw new Error("Não há tarifa de frete disponível para este CEP e peso");
   return {
     options,
     pickupProductIds: pickup.map((product) => product.id),
     shippableProductIds: shippable.map((product) => product.id),
     hasPickupItems: pickup.length > 0,
     hasShippableItems: true,
-    fallbackUsed: true,
+    fallbackUsed,
   };
 }
